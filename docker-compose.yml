@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sonicband}
+      POSTGRES_USER: ${POSTGRES_USER:-sonicband}
+      # Valeur par défaut pour le développement local uniquement ; définissez POSTGRES_PASSWORD dans .env.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sonicband}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Ligne qui permet de run le script de la BD la première fois dans le conteneur vide
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+
+volumes:
+  postgres_data:
