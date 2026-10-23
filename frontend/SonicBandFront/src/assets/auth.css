@@ -17,7 +17,12 @@
   padding: 32px 16px;
   background: var(--bg);
   color: var(--ink);
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    'Poppins',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
 }
 
 .auth-card {
@@ -81,7 +86,9 @@
   border: 1px solid var(--line);
   border-radius: 14px;
   outline: none;
-  transition: border-color 0.15s, background-color 0.15s;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
 }
 
 .field input::placeholder {
@@ -113,7 +120,9 @@
   font-weight: 500;
   border-radius: 999px;
   cursor: pointer;
-  transition: background-color 0.15s, opacity 0.15s;
+  transition:
+    background-color 0.15s,
+    opacity 0.15s;
 }
 
 .btn-primary {
