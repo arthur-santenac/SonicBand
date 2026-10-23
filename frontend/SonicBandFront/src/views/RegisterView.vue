@@ -32,17 +32,39 @@ const goToLogin = () => {
       <form class="auth-form" @submit.prevent="handleRegister">
         <div class="field">
           <label for="name">Nom affiché</label>
-          <input id="name" v-model="name" type="text" placeholder="Paul" autocomplete="nickname" required />
+          <input
+            id="name"
+            v-model="name"
+            type="text"
+            placeholder="Paul"
+            autocomplete="nickname"
+            required
+          />
         </div>
 
         <div class="field">
           <label for="email">Adresse e-mail</label>
-          <input id="email" v-model="email" type="email" placeholder="paul@exemple.fr" autocomplete="email" required />
+          <input
+            id="email"
+            v-model="email"
+            type="email"
+            placeholder="paul@exemple.fr"
+            autocomplete="email"
+            required
+          />
         </div>
 
         <div class="field">
           <label for="password">Mot de passe</label>
-          <input id="password" v-model="password" type="password" placeholder="8 caractères minimum" minlength="8" autocomplete="new-password" required />
+          <input
+            id="password"
+            v-model="password"
+            type="password"
+            placeholder="8 caractères minimum"
+            minlength="8"
+            autocomplete="new-password"
+            required
+          />
         </div>
 
         <button type="submit" class="btn btn-primary">Créer mon compte</button>
