@@ -1,0 +1,97 @@
+<!-- core/templates/core/base.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sonic Band</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <!-- FontAwesome pour les icônes -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        html, body {
+            height: 100%;
+            background-color: #f4f6f8;
+        }
+        /* Style personnalisé pour la sidebar sombre */
+        .sidebar {
+            background-color: #2c3e50;
+            min-height: 100vh;
+        }
+        .sidebar .menu-label {
+            color: #8fa3b7;
+            letter-spacing: 1px;
+        }
+        .sidebar .menu-list a {
+            color: #ecf0f1;
+            border-radius: 6px;
+            margin-bottom: 4px;
+            transition: all 0.2s ease;
+        }
+        .sidebar .menu-list a:hover, .sidebar .menu-list a.is-active {
+            background-color: #34495e;
+            color: #48c774; /* Vert Bulma pour l'accentuation */
+        }
+        .sidebar .icon {
+            margin-right: 10px;
+        }
+        .main-content {
+            padding: 2.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="columns is-gapless is-marginless">
+        
+        <!-- SIDEBAR SOMBRE -->
+        <div class="column is-2 sidebar p-4">
+            <aside class="menu">
+                <div class="has-text-centered mb-5 mt-3">
+                    <h1 class="title is-4 has-text-white"><i class="fa-solid fa-bolt has-text-warning"></i> Sonic Band</h1>
+                </div>
+
+                <p class="menu-label">Général</p>
+                <ul class="menu-list">
+                    <li><a href="{% url 'presentation' %}"><i class="fa-solid fa-house icon"></i> Présentation</a></li>
+                </ul>
+
+                {% if user.is_authenticated %}
+                    <p class="menu-label">Mon Espace</p>
+                    <ul class="menu-list">
+                        <li><a href="{% url 'dashboard' %}" class="is-active"><i class="fa-solid fa-gauge icon"></i> Tableau de bord</a></li>
+                    </ul>
+                    <p class="menu-label">Groupe</p>
+                    <ul class="menu-list">
+                        <li><a class="has-text-grey"><i class="fa-solid fa-music icon"></i> Répertoire</a></li>
+                        <li><a class="has-text-grey"><i class="fa-solid fa-list icon"></i> Setlists</a></li>
+                        <li><a class="has-text-grey"><i class="fa-solid fa-calendar-check icon"></i> Disponibilités</a></li>
+                    </ul>
+                    <hr class="has-background-grey-dark my-4">
+                    <ul class="menu-list">
+                        <li>
+                            <form method="post" action="{% url 'logout' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="button is-danger is-outlined is-fullwidth mt-2">
+                                    <i class="fa-solid fa-right-from-bracket mr-2"></i> Déconnexion
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                {% else %}
+                    <p class="menu-label">Accès</p>
+                    <ul class="menu-list">
+                        <li><a href="{% url 'login' %}"><i class="fa-solid fa-arrow-right-to-bracket icon"></i> Connexion</a></li>
+                        <li><a href="{% url 'signup' %}"><i class="fa-solid fa-user-plus icon"></i> S'inscrire</a></li>
+                    </ul>
+                {% endif %}
+            </aside>
+        </div>
+
+        <!-- ZONE DE CONTENU -->
+        <div class="column is-10 main-content">
+            {% block contenu %}{% endblock %}
+        </div>
+
+    </div>
+</body>
+</html>

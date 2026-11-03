@@ -1,0 +1,20 @@
+{% extends 'core/base.html' %}
+{% block contenu %}
+<div class="columns is-centered">
+    <div class="column is-6">
+        <div class="box mt-5">
+            <h1 class="title">Inviter un musicien</h1>
+            <form action="" method="post">
+                {% csrf_token %}
+                <div class="field">
+                    <label class="label">{{ form.email.label }}</label>
+                    <div class="control">
+                        {{ form.email }}
+                    </div>
+                </div>
+                <button class="button is-success mt-4">Envoyer l'invitation</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

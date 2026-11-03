@@ -3,14 +3,27 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import logo from '@/assets/logo.png'
 import '@/assets/auth.css'
+import { useAuthStore } from '@/stores/auth'
 
 const name = ref('')
 const email = ref('')
 const password = ref('')
+const error = ref('')
+const loading = ref(false)
 const router = useRouter()
+const auth = useAuthStore()
 
-const handleRegister = () => {
-  console.log('Tentative de création de compte pour :', name.value, email.value)
+const handleRegister = async () => {
+  error.value = ''
+  loading.value = true
+  try {
+    await auth.register(name.value, email.value, password.value)
+    router.push('/home')
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
 }
 
 const goToLogin = () => {
@@ -30,6 +43,8 @@ const goToLogin = () => {
       <p class="auth-subtitle">Un seul compte pour tous tes groupes.</p>
 
       <form class="auth-form" @submit.prevent="handleRegister">
+        <p v-if="error" class="auth-error" role="alert">{{ error }}</p>
+
         <div class="field">
           <label for="name">Nom affiché</label>
           <input
@@ -67,7 +82,9 @@ const goToLogin = () => {
           />
         </div>
 
-        <button type="submit" class="btn btn-primary">Créer mon compte</button>
+        <button type="submit" class="btn btn-primary" :disabled="loading">
+          {{ loading ? 'Création…' : 'Créer mon compte' }}
+        </button>
       </form>
 
       <div class="auth-footer">

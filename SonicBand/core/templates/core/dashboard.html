@@ -1,0 +1,47 @@
+{% extends 'core/base.html' %}
+{% block contenu %}
+<div class="mb-5">
+    <h1 class="title is-2">Bonjour, {{ user.username }} <i class="fa-solid fa-hand-wave"></i></h1>
+    <p class="subtitle has-text-grey">Voici un résumé de l'activité de votre groupe.</p>
+</div>
+
+<!-- Statistiques rapides -->
+<nav class="level is-mobile box">
+  <div class="level-item has-text-centered">
+    <div>
+      <p class="heading">Membres</p>
+      <p class="title has-text-primary">1</p>
+    </div>
+  </div>
+  <div class="level-item has-text-centered">
+    <div>
+      <p class="heading">Morceaux</p>
+      <p class="title has-text-info">0</p>
+    </div>
+  </div>
+  <div class="level-item has-text-centered">
+    <div>
+      <p class="heading">Prochain Concert</p>
+      <p class="title has-text-success">-</p>
+    </div>
+  </div>
+</nav>
+
+<div class="columns mt-4">
+    <div class="column is-half">
+        <div class="card">
+            <header class="card-header">
+                <p class="card-header-title">Équipe</p>
+            </header>
+            <div class="card-content">
+                <div class="content">
+                    <p>Vous êtes actuellement le seul membre.</p>
+                    <a href="{% url 'invite' %}" class="button is-link is-light is-fullwidth">
+                        <i class="fa-solid fa-envelope mr-2"></i> Inviter un musicien
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -30,3 +30,36 @@ Pour installer les dépendances Python :
 Les modèles peuvent ensuite être importés ainsi :
 
 La base PostgreSQL est initialisée par Docker Compose ; les modèles ne créent pas automatiquement les tables.
+
+
+# sans Docker
+
+
+# La première fois
+Terminal 1 : backend
+
+python3 -m venv backend/venv
+source backend/venv/bin/activate
+python -m pip install -r backend/requirements.txt
+export DATABASE_URL=sqlite:///./db.sqlite3
+python -c "from backend.database import engine; from backend.models import Base; Base.metadata.create_all(engine)"
+python -m uvicorn backend.main:app --reload
+
+Terminal 2 : frontend
+
+cd frontend/SonicBandFront
+npm install
+npm run dev
+Ouvrir ensuite http://localhost:8080.
+
+# Les fois suivantes
+Terminal 1 : backend
+
+source backend/venv/bin/activate
+export DATABASE_URL=sqlite:///./db.sqlite3
+python -m uvicorn backend.main:app --reload
+
+Terminal 2 : frontend
+
+cd frontend/SonicBandFront
+npm run dev
