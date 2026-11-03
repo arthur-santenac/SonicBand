@@ -13,6 +13,27 @@ services:
       - postgres_data:/var/lib/postgresql/data
       # Ligne qui permet de run le script de la BD la première fois dans le conteneur vide
       - ./database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-sonicband}:${POSTGRES_PASSWORD:-sonicband}@db:5432/${POSTGRES_DB:-sonicband}
+      # Valeur par défaut pour le développement local uniquement ; définissez JWT_SECRET dans .env.
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-a-changer-absolument-en-production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080}
+    ports:
+      - "8000:8000"
 
 volumes:
   postgres_data:

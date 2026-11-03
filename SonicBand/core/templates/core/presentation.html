@@ -1,0 +1,53 @@
+{% extends 'core/base.html' %}
+
+{% block contenu %}
+<!-- Hero Section -->
+<section class="hero is-primary is-medium is-rounded mb-6" style="background: linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%); border-radius: 12px;">
+  <div class="hero-body has-text-centered">
+    <p class="title is-1"><i class="fa-solid fa-guitar"></i> Sonic Band</p>
+    <p class="subtitle is-4 mt-3">L'outil de gestion open source pour les groupes de musique.</p>
+    {% if not user.is_authenticated %}
+        <a href="{% url 'signup' %}" class="button is-warning is-medium is-rounded mt-4"><strong>Créer mon groupe gratuitement</strong></a>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Features Cards -->
+<div class="columns is-multiline">
+    <div class="column is-4">
+        <div class="card" style="height: 100%; border-radius: 8px;">
+            <div class="card-content has-text-centered">
+                <span class="icon is-large has-text-info"><i class="fa-solid fa-calendar-days fa-3x"></i></span>
+                <p class="title is-4 mt-4">Organisation</p>
+                <div class="content">
+                    Planifiez vos répétitions et croisez les disponibilités de vos musiciens instantanément.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="column is-4">
+        <div class="card" style="height: 100%; border-radius: 8px;">
+            <div class="card-content has-text-centered">
+                <span class="icon is-large has-text-success"><i class="fa-solid fa-file-pdf fa-3x"></i></span>
+                <p class="title is-4 mt-4">Scène</p>
+                <div class="content">
+                    Concevez vos setlists, éditez vos fiches techniques et exportez-les en PDF pour la régie.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="column is-4">
+        <div class="card" style="height: 100%; border-radius: 8px;">
+            <div class="card-content has-text-centered">
+                <span class="icon is-large has-text-danger"><i class="fa-brands fa-youtube fa-3x"></i></span>
+                <p class="title is-4 mt-4">Répertoire</p>
+                <div class="content">
+                    Centralisez vos morceaux, liez vos vidéos de référence et votez pour vos prochaines reprises.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

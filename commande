@@ -1,0 +1,7 @@
+virtualenv ~/venv
+source ~/venv/bin/activate
+pip install django
+pip freeze > requirements.txt
+django-admin startproject SonicBand
+
+python manage.py startapp core
