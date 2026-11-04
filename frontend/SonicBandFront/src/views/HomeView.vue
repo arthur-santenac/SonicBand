@@ -1,161 +1,57 @@
 <template>
-  <div class="app-wrapper">
-    <!-- En-tête global avec le logo -->
-    <header class="top-header">
-      <div class="logo-container">
-        <img src="@/assets/logo.png" alt="Logo" class="logo-icon" />
-        <span class="logo-text">sonicBand</span>
-      </div>
-      <button type="button" class="logout-btn" @click="handleLogout">Se déconnecter</button>
-    </header>
+  <AppLayout>
+    <main class="main-content">
+      <header class="content-header">
+        <div>
+          <h1>Salut {{ userName }}</h1>
+          <p class="subtitle">Retrouve tous tes groupes ici.</p>
+        </div>
+      </header>
 
-    <div class="main-layout">
-      <!-- Barre de navigation flottante -->
-      <nav class="floating-sidebar">
-        <div class="nav-item active">
-          <svg
-            viewBox="0 0 24 24"
-            width="24"
-            height="24"
-            stroke="currentColor"
-            stroke-width="2"
-            fill="none"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            class="home-icon"
+      <p v-if="store.erreur" class="load-error" role="alert">{{ store.erreur }}</p>
+
+      <!-- Grille des groupes -->
+      <section class="groups-section">
+        <div class="groups-grid">
+          <RouterLink
+            class="group-card"
+            v-for="group in groups"
+            :key="group.id"
+            :to="{ name: 'group', params: { id: group.id } }"
           >
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-          </svg>
-        </div>
-        <RouterLink
-          v-for="group in groups"
-          :key="group.id"
-          :to="{ name: 'group', params: { id: group.id } }"
-          class="sidebar-bubble"
-          :class="group.colorClass"
-          :title="group.name"
-        >
-          {{ group.initial }}
-        </RouterLink>
-        <RouterLink
-          :to="{ name: 'create-group' }"
-          class="sidebar-bubble create-dashed"
-          title="Créer un groupe"
-        >
-          +
-        </RouterLink>
-      </nav>
-
-      <!-- Contenu principal -->
-      <main class="main-content">
-        <header class="content-header">
-          <div>
-            <h1>Salut {{ userName }}</h1>
-            <p class="subtitle">Retrouve tous tes groupes ici.</p>
-          </div>
-
-          <button class="inbox-btn" @click="isInboxOpen = true">
-            <span class="icon">🔔</span> Boîte de réception
-            <span class="badge" v-if="invitations.length > 0">{{ invitations.length }}</span>
-          </button>
-        </header>
-
-        <p v-if="store.erreur" class="load-error" role="alert">{{ store.erreur }}</p>
-
-        <!-- Grille des groupes -->
-        <section class="groups-section">
-          <div class="groups-grid">
-            <RouterLink
-              class="group-card"
-              v-for="group in groups"
-              :key="group.id"
-              :to="{ name: 'group', params: { id: group.id } }"
-            >
-              <div class="group-card-header">
-                <div class="card-bubble" :class="group.colorClass">{{ group.initial }}</div>
-              </div>
-              <div class="group-details">
-                <h3>{{ group.name }}</h3>
-                <p>{{ group.membersCount }} musiciens · {{ prochainEvenement(group) }}</p>
-              </div>
-            </RouterLink>
-
-            <RouterLink :to="{ name: 'create-group' }" class="group-card create-card">
-              <div class="create-icon">+</div>
-              <h3>Créer un groupe</h3>
-              <p class="create-hint">Tu en seras l'administrateur.</p>
-            </RouterLink>
-          </div>
-        </section>
-      </main>
-    </div>
-
-    <!-- Modale Boîte de réception -->
-    <div class="modal-overlay" v-if="isInboxOpen" @click.self="isInboxOpen = false">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h2>Invitations à rejoindre un groupe</h2>
-          <button class="close-btn" @click="isInboxOpen = false">×</button>
-        </div>
-        <div class="modal-body">
-          <p v-if="inboxError" class="load-error" role="alert">{{ inboxError }}</p>
-          <p v-if="invitations.length === 0" class="empty-inbox">Aucune nouvelle invitation.</p>
-          <div class="invitation-card" v-for="invit in invitations" :key="invit.id_invit">
-            <div class="invit-info">
-              <div class="card-bubble" :class="couleur(invit.id_grp)">
-                {{ initiale(invit.nom_grp) }}
-              </div>
-              <div>
-                <h3>{{ invit.nom_grp }}</h3>
-                <p>Invité par {{ invit.invite_par || 'un ancien membre' }}</p>
-              </div>
+            <div class="group-card-header">
+              <div class="card-bubble" :class="group.colorClass">{{ group.initial }}</div>
             </div>
-            <div class="invit-actions">
-              <button
-                class="btn-accept"
-                :disabled="busyId === invit.id_invit"
-                @click="accepter(invit)"
-              >
-                Accepter
-              </button>
-              <button
-                class="btn-decline"
-                :disabled="busyId === invit.id_invit"
-                @click="refuser(invit)"
-              >
-                Supprimer
-              </button>
+            <div class="group-details">
+              <h3>{{ group.name }}</h3>
+              <p>{{ group.membersCount }} musiciens · {{ prochainEvenement(group) }}</p>
             </div>
-          </div>
+          </RouterLink>
+
+          <RouterLink :to="{ name: 'create-group' }" class="group-card create-card">
+            <div class="create-icon">+</div>
+            <h3>Créer un groupe</h3>
+            <p class="create-hint">Tu en seras l'administrateur.</p>
+          </RouterLink>
         </div>
-      </div>
-    </div>
-  </div>
+      </section>
+    </main>
+  </AppLayout>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
+import AppLayout from '@/components/AppLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { couleur, initiale, useGroupesStore } from '@/stores/groupes'
 import { evenementsDemo, prochainEvenement } from '@/data/groupes'
 
 const auth = useAuthStore()
 const store = useGroupesStore()
-const router = useRouter()
 
-// Nom de l'utilisateur connecté (renvoyé par le backend)
 const userName = computed(() => auth.user?.nom_user ?? '')
-const isInboxOpen = ref(false)
 
-const handleLogout = () => {
-  auth.logout()
-  router.push('/')
-}
-
-// Mes groupes (API), dans le format attendu par le template.
-// Les événements sont encore des données de démonstration (data/groupes.js).
 const groups = computed(() =>
   store.groupes.map((g) => ({
     id: g.id_grp,
@@ -166,157 +62,9 @@ const groups = computed(() =>
     events: evenementsDemo(g.nom_grp),
   })),
 )
-
-// Boîte de réception : invitations en attente (API)
-const invitations = computed(() => store.invitations)
-const busyId = ref(null)
-const inboxError = ref('')
-
-async function accepter(invit) {
-  inboxError.value = ''
-  busyId.value = invit.id_invit
-  try {
-    const groupe = await store.accepter(invit)
-    isInboxOpen.value = false
-    router.push({ name: 'group', params: { id: groupe.id_grp } })
-  } catch (err) {
-    inboxError.value = err.message
-  } finally {
-    busyId.value = null
-  }
-}
-
-async function refuser(invit) {
-  inboxError.value = ''
-  busyId.value = invit.id_invit
-  try {
-    await store.refuser(invit)
-  } catch (err) {
-    inboxError.value = err.message
-  } finally {
-    busyId.value = null
-  }
-}
-
-onMounted(() => store.charger())
 </script>
 
 <style scoped>
-.app-wrapper {
-  min-height: 100vh;
-  background-color: #f4f5f7; /* Gris très clair similaire au fond de connexion */
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  display: flex;
-  flex-direction: column;
-  color: #1c1e21; /* Couleur de texte principale foncée */
-}
-
-/* --- En-tête global (Logo) --- */
-.top-header {
-  padding: 24px 40px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.logo-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.logo-icon {
-  height: 28px;
-}
-
-.logo-text {
-  font-weight: 700; /* Gras prononcé comme sur la page de connexion */
-  font-size: 1.5rem;
-  letter-spacing: -0.5px;
-  color: #000000;
-}
-
-/* Bouton de déconnexion (même style que les boutons secondaires) */
-.logout-btn {
-  font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  border-radius: 30px;
-  padding: 10px 20px;
-  cursor: pointer;
-  background: transparent;
-  color: #1c1e21;
-  border: 1px solid #ccd0d5;
-  transition: background-color 0.2s;
-}
-
-.logout-btn:hover {
-  background-color: #ffffff;
-  border-color: #1c1e21;
-}
-
-/* --- Layout Principal --- */
-.main-layout {
-  display: flex;
-  flex: 1;
-  padding: 0 40px 40px 40px;
-  gap: 40px;
-}
-
-/* --- Barre de navigation flottante --- */
-.floating-sidebar {
-  background: white;
-  border-radius: 40px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  height: max-content;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-}
-
-.nav-item.active {
-  background-color: #111;
-  color: white;
-  width: 56px;
-  height: 56px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  box-shadow:
-    0 0 0 2px white,
-    0 0 0 4px #e4e6eb;
-}
-
-.sidebar-bubble {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #000;
-  cursor: pointer;
-  text-decoration: none;
-  transition: opacity 0.2s;
-}
-
-.sidebar-bubble:hover {
-  opacity: 0.8;
-}
-
-.create-dashed {
-  background: transparent;
-  border: 2px dashed #ccd0d5;
-  color: #65676b;
-}
-
-/* --- Contenu Principal --- */
 .main-content {
   flex: 1;
 }
@@ -331,67 +79,18 @@ onMounted(() => store.charger())
 .content-header h1 {
   font-size: 2.5rem;
   margin: 0 0 8px 0;
-  font-weight: 700; /* Titre très gras calqué sur le "Connexion" de la maquette */
+  font-weight: 700;
   color: #000000;
   letter-spacing: -0.5px;
 }
 
 .subtitle {
   font-size: 1rem;
-  color: #65676b; /* Gris standard pour les textes secondaires */
+  color: #65676b;
   margin: 0;
   font-weight: 400;
 }
 
-/* Style des boutons calqué sur "Se connecter" */
-.inbox-btn,
-.btn-accept,
-.btn-decline {
-  font-family: inherit;
-  font-size: 1rem;
-  font-weight: 600; /* Texte de bouton semi-gras */
-  border-radius: 30px; /* Bordures très arrondies (pill-shape) */
-  padding: 12px 24px;
-  cursor: pointer;
-  transition:
-    background-color 0.2s,
-    transform 0.1s;
-}
-
-.inbox-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: white;
-  border: 1px solid #e4e6eb;
-  color: #1c1e21;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  position: relative;
-  font-size: 0.95rem;
-  padding: 10px 20px;
-}
-
-.inbox-btn:hover {
-  background-color: #f4f5f7;
-}
-
-.badge {
-  background-color: #e63946;
-  color: white;
-  border-radius: 50%;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  position: absolute;
-  top: -6px;
-  right: -6px;
-}
-
-/* --- Grille et Cartes --- */
 .groups-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -462,12 +161,6 @@ onMounted(() => store.charger())
   font-size: 0.9rem;
 }
 
-.btn-accept:disabled,
-.btn-decline:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
 .card-bubble {
   width: 56px;
   height: 56px;
@@ -483,7 +176,7 @@ onMounted(() => store.charger())
 .group-details h3 {
   margin: 0 0 6px 0;
   font-size: 1.25rem;
-  font-weight: 700; /* Nom du groupe bien gras */
+  font-weight: 700;
   color: #000000;
   letter-spacing: -0.3px;
 }
@@ -495,7 +188,6 @@ onMounted(() => store.charger())
   font-weight: 400;
 }
 
-/* Couleurs partagées */
 .bg-blue {
   background-color: #aecbfa;
 }
@@ -509,135 +201,7 @@ onMounted(() => store.charger())
   background-color: #fad2cf;
 }
 
-/* --- Pop-up Modale --- */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: white;
-  border-radius: 20px;
-  width: 90%;
-  max-width: 550px;
-  padding: 32px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.modal-header h2 {
-  margin: 0;
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #000;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 2rem;
-  cursor: pointer;
-  color: #65676b;
-  line-height: 1;
-}
-
-.empty-inbox {
-  text-align: center;
-  color: #65676b;
-  padding: 20px 0;
-  font-size: 0.95rem;
-}
-
-.invitation-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 0;
-  border-bottom: 1px solid #f0f2f5;
-}
-
-.invitation-card:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-.invit-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.invit-info h3 {
-  margin: 0 0 4px 0;
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: #000;
-}
-.invit-info p {
-  margin: 0;
-  color: #65676b;
-  font-size: 0.9rem;
-}
-
-.invit-actions {
-  display: flex;
-  gap: 10px;
-}
-
-/* Style du bouton Accepter (primaire, fond noir) */
-.btn-accept {
-  background-color: #1c1e21;
-  color: white;
-  border: none;
-  font-size: 0.95rem;
-  padding: 10px 20px;
-}
-.btn-accept:hover {
-  background-color: #000000;
-}
-
-/* Style du bouton Supprimer (secondaire, bordure grise) */
-.btn-decline {
-  background-color: transparent;
-  color: #1c1e21;
-  border: 1px solid #ccd0d5;
-  font-size: 0.95rem;
-  padding: 10px 20px;
-}
-.btn-decline:hover {
-  background-color: #f4f5f7;
-  border-color: #1c1e21;
-}
-
-/* --- Responsivité --- */
 @media (max-width: 768px) {
-  .top-header {
-    padding: 20px;
-  }
-  .main-layout {
-    flex-direction: column;
-    padding: 0 20px 20px 20px;
-    gap: 24px;
-  }
-  .floating-sidebar {
-    flex-direction: row;
-    border-radius: 20px;
-    overflow-x: auto;
-    padding: 12px 20px;
-    justify-content: flex-start;
-  }
   .content-header {
     flex-direction: column;
     gap: 16px;
@@ -645,18 +209,6 @@ onMounted(() => store.charger())
   }
   .content-header h1 {
     font-size: 2rem;
-  }
-  .invitation-card {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-  .invit-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-  .modal-content {
-    padding: 24px;
   }
 }
 </style>
