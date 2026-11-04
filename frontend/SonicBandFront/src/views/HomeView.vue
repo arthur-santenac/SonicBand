@@ -38,7 +38,13 @@
         >
           {{ group.initial }}
         </RouterLink>
-        <div class="sidebar-bubble create-dashed">+</div>
+        <RouterLink
+          :to="{ name: 'create-group' }"
+          class="sidebar-bubble create-dashed"
+          title="Créer un groupe"
+        >
+          +
+        </RouterLink>
       </nav>
 
       <!-- Contenu principal -->
@@ -55,14 +61,11 @@
           </button>
         </header>
 
+        <p v-if="store.erreur" class="load-error" role="alert">{{ store.erreur }}</p>
+
         <!-- Grille des groupes -->
         <section class="groups-section">
           <div class="groups-grid">
-            <div class="group-card create-card">
-              <div class="create-icon">+</div>
-              <h3>Créer un groupe</h3>
-            </div>
-
             <RouterLink
               class="group-card"
               v-for="group in groups"
@@ -77,6 +80,12 @@
                 <p>{{ group.membersCount }} musiciens · {{ prochainEvenement(group) }}</p>
               </div>
             </RouterLink>
+
+            <RouterLink :to="{ name: 'create-group' }" class="group-card create-card">
+              <div class="create-icon">+</div>
+              <h3>Créer un groupe</h3>
+              <p class="create-hint">Tu en seras l'administrateur.</p>
+            </RouterLink>
           </div>
         </section>
       </main>
@@ -90,18 +99,33 @@
           <button class="close-btn" @click="isInboxOpen = false">×</button>
         </div>
         <div class="modal-body">
+          <p v-if="inboxError" class="load-error" role="alert">{{ inboxError }}</p>
           <p v-if="invitations.length === 0" class="empty-inbox">Aucune nouvelle invitation.</p>
-          <div class="invitation-card" v-for="invit in invitations" :key="invit.id">
+          <div class="invitation-card" v-for="invit in invitations" :key="invit.id_invit">
             <div class="invit-info">
-              <div class="card-bubble" :class="invit.colorClass">{{ invit.initial }}</div>
+              <div class="card-bubble" :class="couleur(invit.id_grp)">
+                {{ initiale(invit.nom_grp) }}
+              </div>
               <div>
-                <h3>{{ invit.groupName }}</h3>
-                <p>Invité par {{ invit.invitedBy }}</p>
+                <h3>{{ invit.nom_grp }}</h3>
+                <p>Invité par {{ invit.invite_par || 'un ancien membre' }}</p>
               </div>
             </div>
             <div class="invit-actions">
-              <button class="btn-accept">Accepter</button>
-              <button class="btn-decline">Supprimer</button>
+              <button
+                class="btn-accept"
+                :disabled="busyId === invit.id_invit"
+                @click="accepter(invit)"
+              >
+                Accepter
+              </button>
+              <button
+                class="btn-decline"
+                :disabled="busyId === invit.id_invit"
+                @click="refuser(invit)"
+              >
+                Supprimer
+              </button>
             </div>
           </div>
         </div>
@@ -111,12 +135,14 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { groupes, prochainEvenement } from '@/data/groupes'
+import { couleur, initiale, useGroupesStore } from '@/stores/groupes'
+import { evenementsDemo, prochainEvenement } from '@/data/groupes'
 
 const auth = useAuthStore()
+const store = useGroupesStore()
 const router = useRouter()
 
 // Nom de l'utilisateur connecté (renvoyé par le backend)
@@ -128,12 +154,51 @@ const handleLogout = () => {
   router.push('/')
 }
 
-// Données de démonstration, en attendant les routes groupes / invitations du backend
-const invitations = ref([
-  { id: 1, groupName: 'Oasis', initial: 'O', colorClass: 'bg-green', invitedBy: 'Arthur' },
-])
+// Mes groupes (API), dans le format attendu par le template.
+// Les événements sont encore des données de démonstration (data/groupes.js).
+const groups = computed(() =>
+  store.groupes.map((g) => ({
+    id: g.id_grp,
+    name: g.nom_grp,
+    initial: initiale(g.nom_grp),
+    colorClass: couleur(g.id_grp),
+    membersCount: g.nb_membres,
+    events: evenementsDemo(g.nom_grp),
+  })),
+)
 
-const groups = groupes
+// Boîte de réception : invitations en attente (API)
+const invitations = computed(() => store.invitations)
+const busyId = ref(null)
+const inboxError = ref('')
+
+async function accepter(invit) {
+  inboxError.value = ''
+  busyId.value = invit.id_invit
+  try {
+    const groupe = await store.accepter(invit)
+    isInboxOpen.value = false
+    router.push({ name: 'group', params: { id: groupe.id_grp } })
+  } catch (err) {
+    inboxError.value = err.message
+  } finally {
+    busyId.value = null
+  }
+}
+
+async function refuser(invit) {
+  inboxError.value = ''
+  busyId.value = invit.id_invit
+  try {
+    await store.refuser(invit)
+  } catch (err) {
+    inboxError.value = err.message
+  } finally {
+    busyId.value = null
+  }
+}
+
+onMounted(() => store.charger())
 </script>
 
 <style scoped>
@@ -379,6 +444,28 @@ const groups = groupes
 .create-card h3 {
   color: #1c1e21;
   font-weight: 600;
+  margin: 0;
+}
+
+.create-hint {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #65676b;
+}
+
+.load-error {
+  background: #fdf0ef;
+  color: #c0322b;
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin: 0 0 16px 0;
+  font-size: 0.9rem;
+}
+
+.btn-accept:disabled,
+.btn-decline:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .card-bubble {

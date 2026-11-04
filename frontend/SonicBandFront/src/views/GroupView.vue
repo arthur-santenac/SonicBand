@@ -13,9 +13,10 @@
           :key="tab.id"
           type="button"
           class="tab"
-          :class="{ active: tab.id === 'apercu' }"
-          :disabled="tab.id !== 'apercu'"
-          :title="tab.id !== 'apercu' ? 'Bientôt disponible' : undefined"
+          :class="{ active: tab.id === activeTab }"
+          :disabled="!ONGLETS_DISPONIBLES.includes(tab.id)"
+          :title="!ONGLETS_DISPONIBLES.includes(tab.id) ? 'Bientôt disponible' : undefined"
+          @click="activeTab = tab.id"
         >
           <svg
             viewBox="0 0 24 24"
@@ -89,16 +90,22 @@
         </RouterLink>
         <div class="sidebar-separator"></div>
         <RouterLink
-          v-for="g in groupes"
-          :key="g.id"
-          :to="{ name: 'group', params: { id: g.id } }"
+          v-for="g in store.groupes"
+          :key="g.id_grp"
+          :to="{ name: 'group', params: { id: g.id_grp } }"
           class="sidebar-bubble"
-          :class="[g.colorClass, { active: group && g.id === group.id }]"
-          :title="g.name"
+          :class="[couleur(g.id_grp), { active: group && g.id_grp === group.id }]"
+          :title="g.nom_grp"
         >
-          {{ g.initial }}
+          {{ initiale(g.nom_grp) }}
         </RouterLink>
-        <div class="sidebar-bubble create-dashed" title="Créer un groupe">+</div>
+        <RouterLink
+          :to="{ name: 'create-group' }"
+          class="sidebar-bubble create-dashed"
+          title="Créer un groupe"
+        >
+          +
+        </RouterLink>
       </nav>
 
       <!-- Contenu principal -->
@@ -108,7 +115,13 @@
           <h1>{{ group.name }}</h1>
         </header>
 
-        <section>
+        <!-- Onglet Membres : inviter et retirer des musiciens -->
+        <section v-if="activeTab === 'membres'" class="members-section">
+          <h2 class="section-title">Membres</h2>
+          <MembresGroupe :id-grp="group.id" :mon-role="group.role" />
+        </section>
+
+        <section v-else>
           <h2 class="section-title">Prochains événements</h2>
 
           <p v-if="group.events.length === 0" class="empty-state">
@@ -172,6 +185,10 @@
         </section>
       </main>
 
+      <main class="main-content" v-else-if="!store.charge">
+        <p class="empty-state">{{ store.erreur || 'Chargement…' }}</p>
+      </main>
+
       <!-- Groupe introuvable -->
       <main class="main-content" v-else>
         <h1 class="not-found-title">Groupe introuvable</h1>
@@ -185,19 +202,45 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import MembresGroupe from '@/components/MembresGroupe.vue'
 import { useAuthStore } from '@/stores/auth'
-import { groupes } from '@/data/groupes'
+import { couleur, initiale, useGroupesStore } from '@/stores/groupes'
+import { evenementsDemo } from '@/data/groupes'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const store = useGroupesStore()
 
 const isProfileOpen = ref(false)
 
-// Groupe affiché, d'après l'id dans l'URL (/groups/:id)
-const group = computed(() => groupes.find((g) => g.id === Number(route.params.id)) ?? null)
+// Groupe affiché, d'après l'id dans l'URL (/groups/:id), parmi mes groupes (API).
+// Les événements sont encore des données de démonstration (data/groupes.js).
+const group = computed(() => {
+  const g = store.groupes.find((x) => x.id_grp === Number(route.params.id))
+  if (!g) return null
+  return {
+    id: g.id_grp,
+    name: g.nom_grp,
+    initial: initiale(g.nom_grp),
+    colorClass: couleur(g.id_grp),
+    membersCount: g.nb_membres,
+    role: g.mon_role,
+    events: evenementsDemo(g.nom_grp),
+  }
+})
+
+// Onglets utilisables pour l'instant : Aperçu et Membres
+const ONGLETS_DISPONIBLES = ['apercu', 'membres']
+const activeTab = ref('apercu')
+watch(
+  () => route.params.id,
+  () => (activeTab.value = 'apercu'),
+)
+
+onMounted(() => store.charger())
 
 const userName = computed(() => auth.user?.nom_user ?? '')
 const userInitial = computed(() => (userName.value.charAt(0) || '?').toUpperCase())
@@ -252,7 +295,7 @@ function typeClass(type) {
 }
 
 function sansReponse(event) {
-  return group.value.membersCount - event.present - event.absent
+  return Math.max(0, group.value.membersCount - event.present - event.absent)
 }
 
 // Enregistre (localement) la réponse de l'utilisateur ; un 2e clic annule la réponse.
@@ -335,8 +378,16 @@ button {
   white-space: nowrap;
 }
 
+.tab:not(:disabled) {
+  cursor: pointer;
+}
+
 .tab:disabled {
   cursor: default;
+}
+
+.members-section {
+  max-width: 720px;
 }
 
 .tab.active {

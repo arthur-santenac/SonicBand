@@ -20,16 +20,28 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/register',
-      name: 'register',
-      component: RegisterView,
-      meta: { guestOnly: true },
-    },    
+      path: '/groups/new',
+      name: 'create-group',
+      component: () => import('../views/CreateGroupView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/groups/:id/musiciens',
+      name: 'group-musicians',
+      component: () => import('../views/CreateGroupView.vue'),
+      meta: { requiresAuth: true },
+    },
     {
       path: '/groups/:id',
       name: 'group',
       component: () => import('../views/GroupView.vue'),
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: RegisterView,
+      meta: { guestOnly: true },
     },
   ],
 })
