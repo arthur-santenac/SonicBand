@@ -31,6 +31,9 @@ Les modèles peuvent ensuite être importés ainsi :
 
 La base PostgreSQL est initialisée par Docker Compose ; les modèles ne créent pas automatiquement les tables.
 
+## Répertoires
+
+L'onglet « Répertoires » d'un groupe permet à ses membres de créer un répertoire, d'y ajouter ou d'en retirer des morceaux et d'associer un lien YouTube pour les écouter.
 
 # sans Docker
 

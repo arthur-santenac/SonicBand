@@ -43,7 +43,9 @@
         <MembresGroupe :id-grp="group.id" :mon-role="group.role" />
       </section>
 
-      <section v-else>
+      <RepertoireGroupe v-else-if="activeTab === 'repertoires'" :id-grp="group.id" />
+
+      <section v-else-if="activeTab === 'apercu'">
         <h2 class="section-title">Prochains événements</h2>
 
         <p v-if="group.events.length === 0" class="empty-state">
@@ -127,6 +129,7 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
 import MembresGroupe from '@/components/MembresGroupe.vue'
+import RepertoireGroupe from '@/components/RepertoireGroupe.vue'
 import { couleur, initiale, useGroupesStore } from '@/stores/groupes'
 import { evenementsDemo } from '@/data/groupes'
 
@@ -147,7 +150,7 @@ const group = computed(() => {
   }
 })
 
-const ONGLETS_DISPONIBLES = ['apercu', 'membres']
+const ONGLETS_DISPONIBLES = ['apercu', 'repertoires', 'membres']
 const activeTab = ref('apercu')
 watch(
   () => route.params.id,

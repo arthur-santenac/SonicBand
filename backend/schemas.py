@@ -104,3 +104,52 @@ class InvitationRecueOut(BaseModel):
     nom_grp: str
     invite_par: str | None = None
     date_invit: datetime | None = None
+
+
+class RepertoireIn(BaseModel):
+    nom_rep: str = Field(min_length=1, max_length=255)
+
+    @field_validator("nom_rep")
+    @classmethod
+    def nom_repertoire_non_vide(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Le nom du répertoire est obligatoire.")
+        return value
+
+
+class MorceauIn(BaseModel):
+    titre_song: str = Field(min_length=1, max_length=255)
+    compositeur: str | None = Field(default=None, max_length=255)
+    lien_youtube: str | None = Field(default=None, max_length=255)
+    url_img: str | None = Field(default=None, max_length=255)
+
+    @field_validator("titre_song")
+    @classmethod
+    def titre_non_vide(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Le titre du morceau est obligatoire.")
+        return value
+
+    @field_validator("compositeur", "lien_youtube", "url_img")
+    @classmethod
+    def optional_values_trimmed(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+
+class MorceauOut(BaseModel):
+    id_song: int
+    titre_song: str
+    compositeur: str | None = None
+    lien_youtube: str | None = None
+    url_img: str | None = None
+    position: int | None = None
+
+
+class RepertoireOut(BaseModel):
+    id_rep: int
+    nom_rep: str
+    morceaux: list[MorceauOut]
