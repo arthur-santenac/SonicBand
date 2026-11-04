@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.auth import router as auth_router
 from backend.config import get_settings
 from backend.groupes import router as groupes_router
+from backend.repertoires import router as repertoires_router
 
 
 @asynccontextmanager
@@ -19,8 +20,9 @@ async def lifespan(_app: FastAPI):
     # Sans Docker (SQLite), on crée au démarrage les tables qui manquent
     # (ex. « invitation » sur une base créée avant). Rien n'est effacé.
     # Avec Docker (PostgreSQL), c'est database/init.sql qui crée les tables.
+    from backend.database import engine
+
     if get_settings().database_url.startswith("sqlite"):
-        from backend.database import engine
         from backend.models import Base
 
         Base.metadata.create_all(engine)
@@ -39,6 +41,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(groupes_router)
+app.include_router(repertoires_router)
 
 
 @app.get("/api/health")
