@@ -63,3 +63,8 @@ Terminal 2 : frontend
 
 cd frontend/SonicBandFront
 npm run dev
+
+
+chmod +x install.sh start.sh 
+./install.sh
+./start.sh  
