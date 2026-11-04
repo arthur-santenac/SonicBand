@@ -4,12 +4,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
-from backend.models import Utilisateur
+from backend.models import Invitation, Utilisateur
 from backend.schemas import AuthOut, LoginIn, RegisterIn, UtilisateurOut
 from backend.security import (
     create_access_token,
@@ -64,6 +64,13 @@ def register(data: RegisterIn, db: DbSession) -> AuthOut:
     )
     db.add(user)
     try:
+        db.flush()
+        # Rattache au nouveau compte les invitations reçues avant l'inscription.
+        db.execute(
+            update(Invitation)
+            .where(Invitation.email_invit == email, Invitation.id_user.is_(None))
+            .values(id_user=user.id_user)
+        )
         db.commit()
     except IntegrityError:
         db.rollback()

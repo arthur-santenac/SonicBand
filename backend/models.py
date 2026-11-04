@@ -1,6 +1,18 @@
 from datetime import date, datetime, time
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Integer, String, Text, Time, func
+from sqlalchemy import (
+    CheckConstraint,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    Time,
+    func,
+    text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -30,6 +42,11 @@ class Utilisateur(Base):
     )
     votes: Mapped[list["Vote"]] = relationship(
         back_populates="utilisateur", passive_deletes=True
+    )
+    invitations_recues: Mapped[list["Invitation"]] = relationship(
+        back_populates="utilisateur",
+        foreign_keys="Invitation.id_user",
+        passive_deletes=True,
     )
 
 
@@ -107,6 +124,9 @@ class Groupe(Base):
     evenements_associes: Mapped[list["GroupeEvenement"]] = relationship(
         back_populates="groupe", passive_deletes=True
     )
+    invitations: Mapped[list["Invitation"]] = relationship(
+        back_populates="groupe", passive_deletes=True
+    )
 
 
 class GroupeEquipement(Base):
@@ -126,7 +146,21 @@ class GroupeEquipement(Base):
 
 
 class UtilisateurGroupe(Base):
+    """Appartenance d'un utilisateur à un groupe.
+
+    role vaut « super_admin » (un seul par groupe), « admin » ou « membre ».
+    """
+
     __tablename__ = "utilisateur_groupe"
+    __table_args__ = (
+        Index(
+            "utilisateur_groupe_un_super_admin",
+            "id_grp",
+            unique=True,
+            postgresql_where=text("role = 'super_admin'"),
+            sqlite_where=text("role = 'super_admin'"),
+        ),
+    )
 
     id_user: Mapped[int] = mapped_column(
         ForeignKey("utilisateur.id_user", ondelete="CASCADE"), primary_key=True
@@ -143,6 +177,52 @@ class UtilisateurGroupe(Base):
         back_populates="groupes_associes"
     )
     groupe: Mapped["Groupe"] = relationship(back_populates="membres_associes")
+
+
+class Invitation(Base):
+    """Invitation d'un musicien (par e-mail) à rejoindre un groupe.
+
+    id_user est renseigné si un compte existe déjà avec cet e-mail (ou dès que la
+    personne s'inscrit) ; statut vaut « en_attente », « acceptee » ou « refusee ».
+    """
+
+    __tablename__ = "invitation"
+    __table_args__ = (
+        CheckConstraint("statut IN ('en_attente', 'acceptee', 'refusee')"),
+        # Une seule invitation en attente par e-mail et par groupe (e-mails stockés en minuscules).
+        Index(
+            "invitation_en_attente_unique",
+            "id_grp",
+            "email_invit",
+            unique=True,
+            postgresql_where=text("statut = 'en_attente'"),
+            sqlite_where=text("statut = 'en_attente'"),
+        ),
+    )
+
+    id_invit: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id_grp: Mapped[int] = mapped_column(
+        ForeignKey("groupe.id_grp", ondelete="CASCADE"), nullable=False
+    )
+    email_invit: Mapped[str] = mapped_column(String(255), nullable=False)
+    id_user: Mapped[int | None] = mapped_column(
+        ForeignKey("utilisateur.id_user", ondelete="CASCADE")
+    )
+    invite_par: Mapped[int | None] = mapped_column(
+        ForeignKey("utilisateur.id_user", ondelete="SET NULL")
+    )
+    statut: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="en_attente", server_default="en_attente"
+    )
+    date_invit: Mapped[datetime | None] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+    groupe: Mapped["Groupe"] = relationship(back_populates="invitations")
+    utilisateur: Mapped["Utilisateur | None"] = relationship(
+        back_populates="invitations_recues", foreign_keys=[id_user]
+    )
+    inviteur: Mapped["Utilisateur | None"] = relationship(foreign_keys=[invite_par])
 
 
 class Repertoire(Base):
@@ -281,6 +361,7 @@ __all__ = [
     "Groupe",
     "GroupeEquipement",
     "GroupeEvenement",
+    "Invitation",
     "Morceau",
     "Repertoire",
     "RepertoireMorceau",

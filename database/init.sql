@@ -117,3 +117,27 @@ CREATE TABLE Vote (
     FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE CASCADE,
     FOREIGN KEY (id_song) REFERENCES Morceau(id_song) ON DELETE CASCADE
 );
+
+-- Invitations à rejoindre un groupe (boîte de réception).
+-- id_user est renseigné si un compte existe avec cet e-mail (ou à l'inscription).
+CREATE TABLE Invitation (
+    id_invit SERIAL PRIMARY KEY,
+    id_grp INT NOT NULL,
+    email_invit VARCHAR(255) NOT NULL,
+    id_user INT,
+    invite_par INT,
+    statut VARCHAR(20) NOT NULL DEFAULT 'en_attente'
+        CHECK (statut IN ('en_attente', 'acceptee', 'refusee')),
+    date_invit TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_grp) REFERENCES Groupe(id_grp) ON DELETE CASCADE,
+    FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE CASCADE,
+    FOREIGN KEY (invite_par) REFERENCES Utilisateur(id_user) ON DELETE SET NULL
+);
+
+-- Une seule invitation en attente par e-mail et par groupe (e-mails stockés en minuscules).
+CREATE UNIQUE INDEX invitation_en_attente_unique
+    ON Invitation (id_grp, email_invit) WHERE statut = 'en_attente';
+
+-- Un seul super admin par groupe (rôles : super_admin, admin, membre).
+CREATE UNIQUE INDEX utilisateur_groupe_un_super_admin
+    ON Utilisateur_Groupe (id_grp) WHERE role = 'super_admin';

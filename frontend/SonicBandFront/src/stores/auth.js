@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { apiFetch } from '@/services/api'
+import { useGroupesStore } from '@/stores/groupes'
 
 const TOKEN_KEY = 'sonicband_token'
 
@@ -49,7 +50,6 @@ export const useAuthStore = defineStore('auth', () => {
     setSession(data)
   }
 
-  // Recharge l'utilisateur à partir du jeton stocké ; déconnecte si le jeton est invalide.
   async function fetchMe() {
     if (!token.value) return null
     try {
@@ -65,6 +65,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = null
     user.value = null
     writeToken(null)
+    useGroupesStore().vider()
   }
 
   return { token, user, isAuthenticated, register, login, fetchMe, logout }
