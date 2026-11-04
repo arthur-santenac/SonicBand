@@ -8,7 +8,7 @@
       </div>
       <button type="button" class="logout-btn" @click="handleLogout">Se déconnecter</button>
     </header>
- 
+
     <div class="main-layout">
       <!-- Barre de navigation flottante -->
       <nav class="floating-sidebar">
@@ -28,11 +28,19 @@
             <polyline points="9 22 9 12 15 12 15 22"></polyline>
           </svg>
         </div>
-        <div class="sidebar-bubble bg-blue">N</div>
-        <div class="sidebar-bubble bg-purple">U</div>
+        <RouterLink
+          v-for="group in groups"
+          :key="group.id"
+          :to="{ name: 'group', params: { id: group.id } }"
+          class="sidebar-bubble"
+          :class="group.colorClass"
+          :title="group.name"
+        >
+          {{ group.initial }}
+        </RouterLink>
         <div class="sidebar-bubble create-dashed">+</div>
       </nav>
- 
+
       <!-- Contenu principal -->
       <main class="main-content">
         <header class="content-header">
@@ -40,13 +48,13 @@
             <h1>Salut {{ userName }}</h1>
             <p class="subtitle">Retrouve tous tes groupes ici.</p>
           </div>
- 
+
           <button class="inbox-btn" @click="isInboxOpen = true">
             <span class="icon">🔔</span> Boîte de réception
             <span class="badge" v-if="invitations.length > 0">{{ invitations.length }}</span>
           </button>
         </header>
- 
+
         <!-- Grille des groupes -->
         <section class="groups-section">
           <div class="groups-grid">
@@ -54,21 +62,26 @@
               <div class="create-icon">+</div>
               <h3>Créer un groupe</h3>
             </div>
- 
-            <div class="group-card" v-for="group in groups" :key="group.id">
+
+            <RouterLink
+              class="group-card"
+              v-for="group in groups"
+              :key="group.id"
+              :to="{ name: 'group', params: { id: group.id } }"
+            >
               <div class="group-card-header">
                 <div class="card-bubble" :class="group.colorClass">{{ group.initial }}</div>
               </div>
               <div class="group-details">
                 <h3>{{ group.name }}</h3>
-                <p>{{ group.membersCount }} musiciens · {{ group.nextEvent }}</p>
+                <p>{{ group.membersCount }} musiciens · {{ prochainEvenement(group) }}</p>
               </div>
-            </div>
+            </RouterLink>
           </div>
         </section>
       </main>
     </div>
- 
+
     <!-- Modale Boîte de réception -->
     <div class="modal-overlay" v-if="isInboxOpen" @click.self="isInboxOpen = false">
       <div class="modal-content">
@@ -96,49 +109,33 @@
     </div>
   </div>
 </template>
- 
+
 <script setup>
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
- 
+import { groupes, prochainEvenement } from '@/data/groupes'
+
 const auth = useAuthStore()
 const router = useRouter()
- 
+
 // Nom de l'utilisateur connecté (renvoyé par le backend)
 const userName = computed(() => auth.user?.nom_user ?? '')
 const isInboxOpen = ref(false)
- 
+
 const handleLogout = () => {
   auth.logout()
   router.push('/')
 }
- 
+
 // Données de démonstration, en attendant les routes groupes / invitations du backend
 const invitations = ref([
   { id: 1, groupName: 'Oasis', initial: 'O', colorClass: 'bg-green', invitedBy: 'Arthur' },
 ])
- 
-const groups = ref([
-  {
-    id: 1,
-    name: 'Nirvana',
-    initial: 'N',
-    colorClass: 'bg-blue',
-    membersCount: 4,
-    nextEvent: 'Répétition ven. 13 nov',
-  },
-  {
-    id: 2,
-    name: 'U2',
-    initial: 'U',
-    colorClass: 'bg-purple',
-    membersCount: 2,
-    nextEvent: 'Aucun événement',
-  },
-])
+
+const groups = groupes
 </script>
- 
+
 <style scoped>
 .app-wrapper {
   min-height: 100vh;
@@ -148,7 +145,7 @@ const groups = ref([
   flex-direction: column;
   color: #1c1e21; /* Couleur de texte principale foncée */
 }
- 
+
 /* --- En-tête global (Logo) --- */
 .top-header {
   padding: 24px 40px;
@@ -156,24 +153,24 @@ const groups = ref([
   align-items: center;
   justify-content: space-between;
 }
- 
+
 .logo-container {
   display: flex;
   align-items: center;
   gap: 12px;
 }
- 
+
 .logo-icon {
   height: 28px;
 }
- 
+
 .logo-text {
   font-weight: 700; /* Gras prononcé comme sur la page de connexion */
   font-size: 1.5rem;
   letter-spacing: -0.5px;
   color: #000000;
 }
- 
+
 /* Bouton de déconnexion (même style que les boutons secondaires) */
 .logout-btn {
   font-family: inherit;
@@ -187,12 +184,12 @@ const groups = ref([
   border: 1px solid #ccd0d5;
   transition: background-color 0.2s;
 }
- 
+
 .logout-btn:hover {
   background-color: #ffffff;
   border-color: #1c1e21;
 }
- 
+
 /* --- Layout Principal --- */
 .main-layout {
   display: flex;
@@ -200,7 +197,7 @@ const groups = ref([
   padding: 0 40px 40px 40px;
   gap: 40px;
 }
- 
+
 /* --- Barre de navigation flottante --- */
 .floating-sidebar {
   background: white;
@@ -213,7 +210,7 @@ const groups = ref([
   height: max-content;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
 }
- 
+
 .nav-item.active {
   background-color: #111;
   color: white;
@@ -228,7 +225,7 @@ const groups = ref([
     0 0 0 2px white,
     0 0 0 4px #e4e6eb;
 }
- 
+
 .sidebar-bubble {
   width: 56px;
   height: 56px;
@@ -240,31 +237,32 @@ const groups = ref([
   font-weight: 700;
   color: #000;
   cursor: pointer;
+  text-decoration: none;
   transition: opacity 0.2s;
 }
- 
+
 .sidebar-bubble:hover {
   opacity: 0.8;
 }
- 
+
 .create-dashed {
   background: transparent;
   border: 2px dashed #ccd0d5;
   color: #65676b;
 }
- 
+
 /* --- Contenu Principal --- */
 .main-content {
   flex: 1;
 }
- 
+
 .content-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 40px;
 }
- 
+
 .content-header h1 {
   font-size: 2.5rem;
   margin: 0 0 8px 0;
@@ -272,14 +270,14 @@ const groups = ref([
   color: #000000;
   letter-spacing: -0.5px;
 }
- 
+
 .subtitle {
   font-size: 1rem;
   color: #65676b; /* Gris standard pour les textes secondaires */
   margin: 0;
   font-weight: 400;
 }
- 
+
 /* Style des boutons calqué sur "Se connecter" */
 .inbox-btn,
 .btn-accept,
@@ -294,7 +292,7 @@ const groups = ref([
     background-color 0.2s,
     transform 0.1s;
 }
- 
+
 .inbox-btn {
   display: flex;
   align-items: center;
@@ -307,11 +305,11 @@ const groups = ref([
   font-size: 0.95rem;
   padding: 10px 20px;
 }
- 
+
 .inbox-btn:hover {
   background-color: #f4f5f7;
 }
- 
+
 .badge {
   background-color: #e63946;
   color: white;
@@ -327,14 +325,14 @@ const groups = ref([
   top: -6px;
   right: -6px;
 }
- 
+
 /* --- Grille et Cartes --- */
 .groups-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
 }
- 
+
 .group-card {
   background: white;
   border-radius: 20px;
@@ -347,13 +345,15 @@ const groups = ref([
   display: flex;
   flex-direction: column;
   gap: 20px;
+  text-decoration: none;
+  color: inherit;
 }
- 
+
 .group-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
- 
+
 .create-card {
   align-items: center;
   justify-content: center;
@@ -363,24 +363,24 @@ const groups = ref([
   box-shadow: none;
   min-height: 160px;
 }
- 
+
 .create-card:hover {
   border-color: #1c1e21;
   background-color: rgba(0, 0, 0, 0.01);
 }
- 
+
 .create-icon {
   font-size: 2rem;
   color: #65676b;
   margin-bottom: 8px;
   font-weight: 300;
 }
- 
+
 .create-card h3 {
   color: #1c1e21;
   font-weight: 600;
 }
- 
+
 .card-bubble {
   width: 56px;
   height: 56px;
@@ -392,7 +392,7 @@ const groups = ref([
   font-weight: 700;
   color: #000;
 }
- 
+
 .group-details h3 {
   margin: 0 0 6px 0;
   font-size: 1.25rem;
@@ -400,14 +400,14 @@ const groups = ref([
   color: #000000;
   letter-spacing: -0.3px;
 }
- 
+
 .group-details p {
   margin: 0;
   font-size: 0.9rem;
   color: #65676b;
   font-weight: 400;
 }
- 
+
 /* Couleurs partagées */
 .bg-blue {
   background-color: #aecbfa;
@@ -421,7 +421,7 @@ const groups = ref([
 .bg-red {
   background-color: #fad2cf;
 }
- 
+
 /* --- Pop-up Modale --- */
 .modal-overlay {
   position: fixed;
@@ -435,7 +435,7 @@ const groups = ref([
   align-items: center;
   z-index: 1000;
 }
- 
+
 .modal-content {
   background-color: white;
   border-radius: 20px;
@@ -444,21 +444,21 @@ const groups = ref([
   padding: 32px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
- 
+
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
 }
- 
+
 .modal-header h2 {
   margin: 0;
   font-size: 1.4rem;
   font-weight: 700;
   color: #000;
 }
- 
+
 .close-btn {
   background: none;
   border: none;
@@ -467,14 +467,14 @@ const groups = ref([
   color: #65676b;
   line-height: 1;
 }
- 
+
 .empty-inbox {
   text-align: center;
   color: #65676b;
   padding: 20px 0;
   font-size: 0.95rem;
 }
- 
+
 .invitation-card {
   display: flex;
   justify-content: space-between;
@@ -482,7 +482,7 @@ const groups = ref([
   padding: 16px 0;
   border-bottom: 1px solid #f0f2f5;
 }
- 
+
 .invitation-card:last-child {
   border-bottom: none;
   padding-bottom: 0;
@@ -503,12 +503,12 @@ const groups = ref([
   color: #65676b;
   font-size: 0.9rem;
 }
- 
+
 .invit-actions {
   display: flex;
   gap: 10px;
 }
- 
+
 /* Style du bouton Accepter (primaire, fond noir) */
 .btn-accept {
   background-color: #1c1e21;
@@ -520,7 +520,7 @@ const groups = ref([
 .btn-accept:hover {
   background-color: #000000;
 }
- 
+
 /* Style du bouton Supprimer (secondaire, bordure grise) */
 .btn-decline {
   background-color: transparent;
@@ -533,7 +533,7 @@ const groups = ref([
   background-color: #f4f5f7;
   border-color: #1c1e21;
 }
- 
+
 /* --- Responsivité --- */
 @media (max-width: 768px) {
   .top-header {
@@ -573,4 +573,3 @@ const groups = ref([
   }
 }
 </style>
- 
