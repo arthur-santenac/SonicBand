@@ -140,6 +140,25 @@ class MorceauIn(BaseModel):
         return value.strip() or None
 
 
+class EquipementIn(BaseModel):
+    nom_equipement: str = Field(min_length=1, max_length=255)
+
+    @field_validator("nom_equipement")
+    @classmethod
+    def nom_non_vide(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Le nom de l'équipement est obligatoire.")
+        return value
+
+
+class EquipementOut(BaseModel):
+    id_equipement: int
+    nom_equipement: str
+    proprietaire: str | None = None
+    est_equipement_groupe: bool = False
+
+
 class MorceauOut(BaseModel):
     id_song: int
     titre_song: str
