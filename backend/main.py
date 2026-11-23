@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.auth import router as auth_router
 from backend.config import get_settings
+from backend.equipements import router as equipements_router
 from backend.groupes import router as groupes_router
 from backend.repertoires import router as repertoires_router
 
@@ -41,6 +42,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(groupes_router)
+app.include_router(equipements_router)
 app.include_router(repertoires_router)
 
 

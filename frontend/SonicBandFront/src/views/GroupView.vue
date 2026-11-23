@@ -1,33 +1,11 @@
 <template>
   <AppLayout>
     <template #header-center>
-      <nav class="group-tabs" aria-label="Sections du groupe">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          type="button"
-          class="tab"
-          :class="{ active: tab.id === activeTab }"
-          :disabled="!ONGLETS_DISPONIBLES.includes(tab.id)"
-          :title="!ONGLETS_DISPONIBLES.includes(tab.id) ? 'Bientôt disponible' : undefined"
-          @click="activeTab = tab.id"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            width="18"
-            height="18"
-            stroke="currentColor"
-            stroke-width="2"
-            fill="none"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path v-for="(d, i) in tab.icon" :key="i" :d="d" />
-          </svg>
-          {{ tab.label }}
-        </button>
-      </nav>
+      <NavigationGroupe
+        :id-grp="route.params.id"
+        :active-tab="activeTab"
+        @select="activeTab = $event"
+      />
     </template>
 
     <!-- Contenu principal -->
@@ -128,6 +106,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import AppLayout from '@/components/AppLayout.vue'
+import NavigationGroupe from '@/components/NavigationGroupe.vue'
 import MembresGroupe from '@/components/MembresGroupe.vue'
 import RepertoireGroupe from '@/components/RepertoireGroupe.vue'
 import { couleur, initiale, useGroupesStore } from '@/stores/groupes'
@@ -150,56 +129,17 @@ const group = computed(() => {
   }
 })
 
-const ONGLETS_DISPONIBLES = ['apercu', 'repertoires', 'membres']
 const activeTab = ref('apercu')
 watch(
-  () => route.params.id,
-  () => (activeTab.value = 'apercu'),
+  () => [route.params.id, route.query.tab],
+  () => {
+    const tab = route.query.tab
+    activeTab.value = ['apercu', 'repertoires', 'membres'].includes(tab)
+      ? tab
+      : 'apercu'
+  },
+  { immediate: true },
 )
-
-const tabs = [
-  {
-    id: 'apercu',
-    label: 'Aperçu',
-    icon: ['M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z', 'M9 22V12h6v10'],
-  },
-  {
-    id: 'dispos',
-    label: 'Disponibilités',
-    icon: [
-      'M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
-      'M16 2v4',
-      'M8 2v4',
-      'M3 10h18',
-    ],
-  },
-  {
-    id: 'repertoires',
-    label: 'Répertoires',
-    icon: [
-      'M9 18V5l12-2v13',
-      'M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
-      'M18 19a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
-    ],
-  },
-  {
-    id: 'equipement',
-    label: 'Équipement',
-    icon: [
-      'M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z',
-    ],
-  },
-  {
-    id: 'membres',
-    label: 'Membres',
-    icon: [
-      'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2',
-      'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-      'M22 21v-2a4 4 0 0 0-3-3.87',
-      'M16 3.13a4 4 0 0 1 0 7.75',
-    ],
-  },
-]
 
 function typeClass(type) {
   return type === 'Concert' ? 'type-concert' : 'type-repetition'
