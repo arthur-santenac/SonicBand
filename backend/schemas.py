@@ -1,8 +1,8 @@
 """Schémas Pydantic des requêtes et réponses de l'API."""
 
-from datetime import datetime
+from datetime import date, datetime, time
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 
 class RegisterIn(BaseModel):
@@ -172,3 +172,86 @@ class RepertoireOut(BaseModel):
     id_rep: int
     nom_rep: str
     morceaux: list[MorceauOut]
+
+# --- Disponibilités -------------------------------------------------------------
+
+# Une plage « toute la journée » va de 00:00 à 23:59 (23:59 = jusqu'à minuit).
+DEBUT_JOURNEE = time(0, 0)
+FIN_JOURNEE = time(23, 59)
+
+
+class _HorairesIn(BaseModel):
+    toute_journee: bool = False
+    heure_debut: time | None = None
+    heure_fin: time | None = None
+
+    @model_validator(mode="after")
+    def horaires_coherents(self):
+        if self.toute_journee:
+            self.heure_debut, self.heure_fin = DEBUT_JOURNEE, FIN_JOURNEE
+            return self
+        if self.heure_debut is None or self.heure_fin is None:
+            raise ValueError("Les heures de début et de fin sont obligatoires.")
+        self.heure_debut = self.heure_debut.replace(second=0, microsecond=0, tzinfo=None)
+        self.heure_fin = self.heure_fin.replace(second=0, microsecond=0, tzinfo=None)
+        if self.heure_fin <= self.heure_debut:
+            raise ValueError("L'heure de fin doit être après l'heure de début.")
+        return self
+
+
+class DisponibiliteIn(_HorairesIn):
+    """Ajout d'une plage sur un ou plusieurs jours de la semaine affichée."""
+
+    semaine: date  # n'importe quel jour de la semaine affichée
+    jours: list[int] = Field(min_length=1, max_length=7)  # 0 = lundi … 6 = dimanche
+    repeter: bool = False  # planning type (chaque semaine)
+
+    @field_validator("jours")
+    @classmethod
+    def jours_valides(cls, value: list[int]) -> list[int]:
+        if any(j < 0 or j > 6 for j in value):
+            raise ValueError("Jour invalide.")
+        return sorted(set(value))
+
+
+class DisponibiliteUpdate(_HorairesIn):
+    semaine: date
+    jour: int = Field(ge=0, le=6)
+
+
+class PlageOut(BaseModel):
+    id_dispo: int
+    date: date
+    jour: int
+    heure_debut: str  # « HH:MM »
+    heure_fin: str
+    toute_journee: bool
+    recurrente: bool  # True = planning type
+    retiree: bool  # plage du planning type retirée pour cette semaine
+
+
+class SemaineDispoOut(BaseModel):
+    semaine: date  # lundi de la semaine
+    plages: list[PlageOut]
+
+
+class MembreDispoOut(BaseModel):
+    id_user: int
+    nom_user: str
+    renseigne: bool  # False = n'a encore saisi aucune disponibilité
+
+
+class CreneauGroupeOut(BaseModel):
+    """Créneau d'un jour où le même ensemble de membres est libre."""
+
+    date: date
+    jour: int
+    debut: int  # minutes depuis minuit
+    fin: int  # minutes depuis minuit (1440 = minuit)
+    disponibles: list[int]  # id_user des membres libres
+
+
+class DisponibilitesGroupeOut(BaseModel):
+    semaine: date
+    membres: list[MembreDispoOut]
+    creneaux: list[CreneauGroupeOut]

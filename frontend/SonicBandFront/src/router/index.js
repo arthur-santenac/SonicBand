@@ -44,6 +44,18 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/groups/:id/disponibilites',
+      name: 'group-dispos',
+      component: () => import('../views/DisponibilitesView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/disponibilites',
+      name: 'my-dispos',
+      component: () => import('../views/MesDisponibilitesView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/register',
       name: 'register',
       component: RegisterView,

@@ -13,4 +13,6 @@ def test_disponibilite_columns():
         "heure_fin_dispo",
         "statut",
         "id_user",
+        "date_fin_repet",
+        "id_dispo_type",
     }

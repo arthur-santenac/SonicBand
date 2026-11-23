@@ -1,14 +1,16 @@
 <template>
   <nav class="group-tabs" aria-label="Sections du groupe">
-    <button
+    <component
+      :is="tab.route ? RouterLink : 'button'"
       v-for="tab in tabsBeforeEquipment"
       :key="tab.id"
-      type="button"
+      :type="tab.route ? undefined : 'button'"
+      :to="tab.route ? { name: tab.route, params: { id: idGrp } } : undefined"
       class="tab"
       :class="{ active: tab.id === activeTab }"
-      :disabled="tab.disabled"
+      :disabled="tab.disabled || undefined"
       :title="tab.disabled ? 'Bientôt disponible' : undefined"
-      @click="$emit('select', tab.id)"
+      @click="tab.route ? undefined : $emit('select', tab.id)"
     >
       <svg
         viewBox="0 0 24 24"
@@ -24,7 +26,7 @@
         <path v-for="(d, i) in tab.icon" :key="i" :d="d" />
       </svg>
       {{ tab.label }}
-    </button>
+    </component>
     <RouterLink
       :to="{ name: 'group-equipment', params: { id: idGrp } }"
       class="tab"
@@ -95,7 +97,8 @@ const tabsBeforeEquipment = [
   {
     id: 'dispos',
     label: 'Disponibilités',
-    disabled: true,
+    disabled: false,
+    route: 'group-dispos',
     icon: [
       'M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z',
       'M16 2v4',
