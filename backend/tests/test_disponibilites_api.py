@@ -41,11 +41,11 @@ def dispo_client(monkeypatch):
         db.flush()
         db.add_all(
             [
-                UtilisateurGroupe(id_user=paul.id_user, id_grp=nirvana.id_grp, role="super_admin"),
+                UtilisateurGroupe(id_user=paul.id_user, id_grp=nirvana.id_grp, role="admin"),
                 UtilisateurGroupe(id_user=arthur.id_user, id_grp=nirvana.id_grp, role="membre"),
                 UtilisateurGroupe(id_user=louis.id_user, id_grp=nirvana.id_grp, role="membre"),
                 UtilisateurGroupe(id_user=paul.id_user, id_grp=u2.id_grp, role="membre"),
-                UtilisateurGroupe(id_user=dehors.id_user, id_grp=u2.id_grp, role="super_admin"),
+                UtilisateurGroupe(id_user=dehors.id_user, id_grp=u2.id_grp, role="admin"),
             ]
         )
         db.commit()

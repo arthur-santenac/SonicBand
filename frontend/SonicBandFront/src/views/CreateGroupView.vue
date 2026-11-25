@@ -16,7 +16,7 @@
       <template v-if="etape === 1">
         <h1>Crée ton groupe</h1>
         <p class="subtitle">
-          Tu en seras le super admin. Tu pourras inviter les musiciens à l'étape suivante.
+          Tu en seras l'admin. Tu pourras inviter les musiciens à l'étape suivante.
         </p>
 
         <form id="create-form" class="card" @submit.prevent="creerGroupe">

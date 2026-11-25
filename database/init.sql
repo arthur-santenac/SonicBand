@@ -107,6 +107,21 @@ CREATE TABLE Morceau (
     date_crea_song TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Fichiers joints à un morceau (partition, tablature, maquette audio, paroles…).
+-- Le contenu est stocké dans la base, 10 Mo maximum par fichier (vérifié par l'API).
+CREATE TABLE Piece_Jointe (
+    id_pj SERIAL PRIMARY KEY,
+    id_song INT NOT NULL,
+    nom_fichier VARCHAR(255) NOT NULL,
+    type_mime VARCHAR(255) NOT NULL,
+    taille INT NOT NULL,
+    contenu BYTEA NOT NULL,
+    date_ajout TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_song) REFERENCES Morceau(id_song) ON DELETE CASCADE
+);
+
+CREATE INDEX ix_piece_jointe_id_song ON Piece_Jointe (id_song);
+
 CREATE TABLE Repertoire_Morceau (
     id_rep INT NOT NULL,
     id_song INT NOT NULL,
@@ -145,6 +160,6 @@ CREATE TABLE Invitation (
 CREATE UNIQUE INDEX invitation_en_attente_unique
     ON Invitation (id_grp, email_invit) WHERE statut = 'en_attente';
 
--- Un seul super admin par groupe (rôles : super_admin, admin, membre).
-CREATE UNIQUE INDEX utilisateur_groupe_un_super_admin
-    ON Utilisateur_Groupe (id_grp) WHERE role = 'super_admin';
+-- Rôles dans un groupe : 'admin' ou 'membre'. Un groupe peut avoir plusieurs admins.
+ALTER TABLE Utilisateur_Groupe
+    ADD CONSTRAINT utilisateur_groupe_role_valide CHECK (role IN ('admin', 'membre'));

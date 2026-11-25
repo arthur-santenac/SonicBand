@@ -7,13 +7,14 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     String,
     Text,
     Time,
     func,
     text,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, deferred, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -164,19 +165,10 @@ class GroupeEquipement(Base):
 class UtilisateurGroupe(Base):
     """Appartenance d'un utilisateur à un groupe.
 
-    role vaut « super_admin » (un seul par groupe), « admin » ou « membre ».
+    role vaut « admin » ou « membre ». Un groupe peut avoir plusieurs admins.
     """
 
     __tablename__ = "utilisateur_groupe"
-    __table_args__ = (
-        Index(
-            "utilisateur_groupe_un_super_admin",
-            "id_grp",
-            unique=True,
-            postgresql_where=text("role = 'super_admin'"),
-            sqlite_where=text("role = 'super_admin'"),
-        ),
-    )
 
     id_user: Mapped[int] = mapped_column(
         ForeignKey("utilisateur.id_user", ondelete="CASCADE"), primary_key=True
@@ -332,6 +324,33 @@ class Morceau(Base):
     votes: Mapped[list["Vote"]] = relationship(
         back_populates="morceau", passive_deletes=True
     )
+    pieces_jointes: Mapped[list["PieceJointe"]] = relationship(
+        back_populates="morceau", passive_deletes=True, order_by="PieceJointe.id_pj"
+    )
+
+
+class PieceJointe(Base):
+    """Fichier joint à un morceau : partition, tablature, enregistrement, paroles…
+
+    Le contenu est stocké dans la base (pas de dossier à partager entre conteneurs).
+    Il n'est chargé que pour le téléchargement.
+    """
+
+    __tablename__ = "piece_jointe"
+
+    id_pj: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id_song: Mapped[int] = mapped_column(
+        ForeignKey("morceau.id_song", ondelete="CASCADE"), nullable=False, index=True
+    )
+    nom_fichier: Mapped[str] = mapped_column(String(255), nullable=False)
+    type_mime: Mapped[str] = mapped_column(String(255), nullable=False)
+    taille: Mapped[int] = mapped_column(Integer, nullable=False)
+    contenu: Mapped[bytes] = deferred(mapped_column(LargeBinary, nullable=False))
+    date_ajout: Mapped[datetime | None] = mapped_column(
+        DateTime, server_default=func.now()
+    )
+
+    morceau: Mapped["Morceau"] = relationship(back_populates="pieces_jointes")
 
 
 class RepertoireMorceau(Base):

@@ -8,7 +8,7 @@
       </RouterLink>
 
       <!-- Emplacement central optionnel (ex: onglets dans GroupView) -->
-      <div class="header-center">
+      <div class="header-center" :class="{ 'is-empty': !$slots['header-center'] }">
         <slot name="header-center"></slot>
       </div>
 
@@ -244,11 +244,18 @@ button {
 }
 
 /* --- En-tête global --- */
+/*
+ * L'en-tête et la barre latérale doivent rester au pixel près à la même place sur
+ * toutes les pages : avec ou sans onglets de groupe, et que la page défile ou non.
+ * La ligne de l'en-tête a donc une hauteur fixe, égale à celle des onglets.
+ */
 .top-header {
+  --header-row: 56px;
+  box-sizing: border-box;
   padding: 24px 40px;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  grid-template-rows: minmax(50px, auto); /* Force la même hauteur avec ou sans les onglets */
+  grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
+  grid-template-rows: var(--header-row);
   align-items: center;
   gap: 24px;
 }
@@ -259,13 +266,19 @@ button {
   gap: 12px;
   text-decoration: none;
   justify-self: start;
+  flex-shrink: 0;
 }
 
 .logo-icon {
+  display: block;
+  width: auto;
   height: 28px;
+  flex-shrink: 0;
 }
 
 .logo-text {
+  white-space: nowrap;
+  line-height: 1;
   font-weight: 700;
   font-size: 1.5rem;
   letter-spacing: -0.5px;
@@ -275,6 +288,9 @@ button {
 .header-center {
   display: flex;
   justify-content: center;
+  align-items: center;
+  height: var(--header-row);
+  min-width: 0;
 }
 
 .header-actions {
@@ -382,6 +398,9 @@ button {
 }
 
 .floating-sidebar {
+  flex-shrink: 0;
+  width: 80px;
+  box-sizing: border-box;
   background: white;
   border-radius: 40px;
   padding: 12px;
@@ -394,6 +413,7 @@ button {
 }
 
 .nav-home {
+  flex-shrink: 0;
   background-color: #111;
   color: white;
   width: 56px;
@@ -420,6 +440,8 @@ button {
 }
 
 .sidebar-bubble {
+  box-sizing: border-box;
+  flex-shrink: 0;
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -620,13 +642,20 @@ button {
 @media (max-width: 1024px) {
   .top-header {
     grid-template-columns: 1fr auto;
+    grid-template-rows: var(--header-row);
+    grid-auto-rows: auto;
   }
   .header-center {
+    height: auto;
     grid-column: 1 / -1;
     grid-row: 2;
     justify-content: flex-start;
     overflow-x: auto;
     max-width: 100%;
+  }
+  /* Sans onglets (accueil), pas de 2e ligne vide en dessous du logo. */
+  .header-center.is-empty {
+    display: none;
   }
 }
 
@@ -641,6 +670,7 @@ button {
     gap: 24px;
   }
   .floating-sidebar {
+    width: auto;
     flex-direction: row;
     border-radius: 20px;
     overflow-x: auto;

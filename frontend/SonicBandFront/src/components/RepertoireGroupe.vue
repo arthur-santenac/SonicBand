@@ -52,6 +52,7 @@
                 <th scope="col">Titre</th>
                 <th scope="col">Artiste</th>
                 <th scope="col">Écouter</th>
+                <th scope="col">Pièces jointes</th>
                 <th scope="col"><span class="sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -69,9 +70,43 @@
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    YouTube
+                    {{ libelleLien(morceau.lien_youtube) }}
                   </a>
                   <span v-else class="no-link">—</span>
+                </td>
+                <td class="song-files">
+                  <ul v-if="morceau.pieces_jointes?.length" class="file-list">
+                    <li v-for="pj in morceau.pieces_jointes" :key="pj.id_pj" class="file-chip">
+                      <button
+                        type="button"
+                        class="file-open"
+                        :title="`Télécharger ${pj.nom_fichier} (${tailleLisible(pj.taille)})`"
+                        @click="telecharger(morceau, pj)"
+                      >
+                        <span aria-hidden="true">{{ iconeFichier(pj) }}</span>
+                        {{ pj.nom_fichier }}
+                      </button>
+                      <button
+                        type="button"
+                        class="file-remove"
+                        :aria-label="`Supprimer ${pj.nom_fichier}`"
+                        title="Supprimer la pièce jointe"
+                        @click="supprimerPieceJointe(morceau, pj)"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  </ul>
+                  <label class="file-add" :class="{ busy: morceauEnEnvoi === morceau.id_song }">
+                    <input
+                      type="file"
+                      multiple
+                      class="sr-only"
+                      :disabled="morceauEnEnvoi === morceau.id_song"
+                      @change="ajouterAuMorceau(morceau, $event)"
+                    />
+                    {{ morceauEnEnvoi === morceau.id_song ? 'Envoi…' : '+ Joindre' }}
+                  </label>
                 </td>
                 <td class="song-actions">
                   <button
@@ -96,7 +131,7 @@
           <input id="titre-morceau" v-model="titreManuel" maxlength="255" required />
           <label for="artiste-morceau">Artiste</label>
           <input id="artiste-morceau" v-model="artisteManuel" maxlength="255" />
-          <label for="youtube-morceau">Lien YouTube</label>
+          <label for="youtube-morceau">Lien d'écoute (YouTube, Spotify…)</label>
           <input
             id="youtube-morceau"
             v-model="youtubeManuel"
@@ -104,6 +139,38 @@
             maxlength="255"
             placeholder="https://youtube.com/…"
           />
+          <label for="pj-morceau">Pièces jointes</label>
+          <div class="file-drop">
+            <input
+              id="pj-morceau"
+              ref="champFichiers"
+              type="file"
+              multiple
+              @change="choisirFichiers"
+            />
+            <p class="hint">
+              Partition, tablature, maquette audio, paroles… {{ NB_MAX_PJ }} fichiers de
+              {{ TAILLE_MAX_MO }} Mo maximum.
+            </p>
+            <ul v-if="fichiersManuels.length" class="file-list">
+              <li v-for="(f, i) in fichiersManuels" :key="i" class="file-chip">
+                <span class="file-open static">
+                  <span aria-hidden="true">{{
+                    iconeFichier({ type_mime: f.type, nom_fichier: f.name })
+                  }}</span>
+                  {{ f.name }}
+                </span>
+                <button
+                  type="button"
+                  class="file-remove"
+                  :aria-label="`Ne pas joindre ${f.name}`"
+                  @click="fichiersManuels.splice(i, 1)"
+                >
+                  ×
+                </button>
+              </li>
+            </ul>
+          </div>
           <button type="submit" class="btn-primary" :disabled="envoiManuel || !repertoireActif">
             {{ envoiManuel ? 'Ajout…' : 'Ajouter au répertoire' }}
           </button>
@@ -139,6 +206,13 @@ const artisteManuel = ref('')
 const youtubeManuel = ref('')
 const envoiManuel = ref(false)
 const morceauEnSuppression = ref(null)
+const morceauEnEnvoi = ref(null)
+const fichiersManuels = ref([])
+const champFichiers = ref(null)
+
+// Mêmes limites que le backend (backend/repertoires.py).
+const TAILLE_MAX_MO = 10
+const NB_MAX_PJ = 10
 
 const repertoireActif = computed(
   () => repertoires.value.find((repertoire) => repertoire.id_rep === idRepertoire.value) ?? null,
@@ -192,6 +266,139 @@ async function enregistrerMorceau(morceau) {
     morceau,
   )
   repertoireActif.value.morceaux.push(ajoute)
+  // On renvoie l'objet réactif stocké dans la liste, pour pouvoir le compléter ensuite.
+  return repertoireActif.value.morceaux.at(-1)
+}
+
+function libelleLien(url) {
+  try {
+    const hote = new URL(url).hostname.replace(/^www\./, '')
+    if (hote.includes('youtu')) return 'YouTube'
+    if (hote.includes('spotify')) return 'Spotify'
+    if (hote.includes('deezer')) return 'Deezer'
+    if (hote.includes('soundcloud')) return 'SoundCloud'
+    return hote
+  } catch {
+    return 'Lien'
+  }
+}
+
+function tailleLisible(octets) {
+  if (octets < 1024) return `${octets} o`
+  if (octets < 1024 * 1024) return `${Math.round(octets / 1024)} Ko`
+  return `${(octets / (1024 * 1024)).toFixed(1).replace('.', ',')} Mo`
+}
+
+function iconeFichier(pj) {
+  const type = pj.type_mime || ''
+  const nom = (pj.nom_fichier || '').toLowerCase()
+  if (type.startsWith('audio/')) return '🎵'
+  if (type.startsWith('video/')) return '🎬'
+  if (type.startsWith('image/')) return '🖼️'
+  if (type === 'application/pdf' || nom.endsWith('.pdf')) return '📄'
+  return '📎'
+}
+
+// Vérifie les fichiers côté navigateur avant l'envoi ; renvoie un message d'erreur ou ''.
+function verifierFichiers(fichiers, deja = 0) {
+  if (deja + fichiers.length > NB_MAX_PJ) {
+    return `Un morceau peut avoir au plus ${NB_MAX_PJ} pièces jointes.`
+  }
+  const tropGros = fichiers.find((f) => f.size > TAILLE_MAX_MO * 1024 * 1024)
+  if (tropGros) return `« ${tropGros.name} » dépasse ${TAILLE_MAX_MO} Mo.`
+  const vide = fichiers.find((f) => f.size === 0)
+  if (vide) return `« ${vide.name} » est vide.`
+  return ''
+}
+
+function choisirFichiers(event) {
+  const nouveaux = [...fichiersManuels.value, ...event.target.files]
+  event.target.value = ''
+  const probleme = verifierFichiers(nouveaux)
+  if (probleme) {
+    erreur.value = probleme
+    return
+  }
+  erreur.value = ''
+  fichiersManuels.value = nouveaux
+}
+
+async function envoyerPiecesJointes(morceau, fichiers) {
+  const ajoutees = await repertoiresApi.ajouterPiecesJointes(
+    auth.token,
+    props.idGrp,
+    repertoireActif.value.id_rep,
+    morceau.id_song,
+    fichiers,
+  )
+  morceau.pieces_jointes = [...(morceau.pieces_jointes ?? []), ...ajoutees]
+}
+
+async function ajouterAuMorceau(morceau, event) {
+  const fichiers = [...event.target.files]
+  event.target.value = ''
+  if (fichiers.length === 0) return
+  erreur.value = ''
+  message.value = ''
+  const probleme = verifierFichiers(fichiers, morceau.pieces_jointes?.length ?? 0)
+  if (probleme) {
+    erreur.value = probleme
+    return
+  }
+  morceauEnEnvoi.value = morceau.id_song
+  try {
+    await envoyerPiecesJointes(morceau, fichiers)
+    message.value =
+      fichiers.length > 1
+        ? `${fichiers.length} fichiers joints à ${morceau.titre_song}.`
+        : `${fichiers[0].name} joint à ${morceau.titre_song}.`
+  } catch (err) {
+    erreur.value = err.message
+  } finally {
+    morceauEnEnvoi.value = null
+  }
+}
+
+async function telecharger(morceau, pj) {
+  erreur.value = ''
+  try {
+    const blob = await repertoiresApi.telechargerPieceJointe(
+      auth.token,
+      props.idGrp,
+      repertoireActif.value.id_rep,
+      morceau.id_song,
+      pj.id_pj,
+    )
+    const url = URL.createObjectURL(blob)
+    const lien = document.createElement('a')
+    lien.href = url
+    lien.download = pj.nom_fichier
+    document.body.appendChild(lien)
+    lien.click()
+    lien.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 10_000)
+  } catch (err) {
+    erreur.value = err.message
+  }
+}
+
+async function supprimerPieceJointe(morceau, pj) {
+  if (!window.confirm(`Supprimer la pièce jointe « ${pj.nom_fichier} » ?`)) return
+  erreur.value = ''
+  message.value = ''
+  try {
+    await repertoiresApi.supprimerPieceJointe(
+      auth.token,
+      props.idGrp,
+      repertoireActif.value.id_rep,
+      morceau.id_song,
+      pj.id_pj,
+    )
+    morceau.pieces_jointes = morceau.pieces_jointes.filter((x) => x.id_pj !== pj.id_pj)
+    message.value = `${pj.nom_fichier} supprimé.`
+  } catch (err) {
+    erreur.value = err.message
+  }
 }
 
 async function ajouterManuellement() {
@@ -199,17 +406,31 @@ async function ajouterManuellement() {
   envoiManuel.value = true
   erreur.value = ''
   message.value = ''
+  const titre = titreManuel.value.trim()
+  const fichiers = [...fichiersManuels.value]
   try {
-    await enregistrerMorceau({
-      titre_song: titreManuel.value.trim(),
+    const morceau = await enregistrerMorceau({
+      titre_song: titre,
       compositeur: artisteManuel.value.trim() || null,
       lien_youtube: youtubeManuel.value.trim() || null,
       url_img: null,
     })
-    message.value = `${titreManuel.value.trim()} ajouté au répertoire.`
     titreManuel.value = ''
     artisteManuel.value = ''
     youtubeManuel.value = ''
+    fichiersManuels.value = []
+    if (fichiers.length > 0) {
+      try {
+        await envoyerPiecesJointes(morceau, fichiers)
+      } catch (err) {
+        erreur.value = `${titre} a été ajouté, mais pas ses pièces jointes : ${err.message}`
+        return
+      }
+    }
+    message.value =
+      fichiers.length > 0
+        ? `${titre} ajouté au répertoire avec ${fichiers.length} pièce${fichiers.length > 1 ? 's' : ''} jointe${fichiers.length > 1 ? 's' : ''}.`
+        : `${titre} ajouté au répertoire.`
   } catch (err) {
     erreur.value = err.message
   } finally {
@@ -418,6 +639,118 @@ td a {
 
 .song-actions {
   text-align: right;
+}
+
+.song-files {
+  min-width: 150px;
+}
+
+.file-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid #e1e4eb;
+  border-radius: 16px;
+  background: #f6f7fa;
+}
+
+.file-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 190px;
+  overflow: hidden;
+  padding: 4px 4px 4px 10px;
+  border: 0;
+  color: #292a30;
+  background: none;
+  font: inherit;
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.file-open:hover {
+  text-decoration: underline;
+}
+
+.file-open.static {
+  cursor: default;
+  text-decoration: none;
+}
+
+.file-remove {
+  padding: 2px 9px 2px 4px;
+  border: 0;
+  color: #8a8f9b;
+  background: none;
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.file-remove:hover {
+  color: #c53930;
+}
+
+.file-add {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px dashed #c8ccd5;
+  border-radius: 16px;
+  color: #5f6470;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.file-add:hover {
+  border-color: #17171c;
+  color: #17171c;
+}
+
+.file-add.busy {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.file-drop {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed #d4d8e0;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+.file-drop input[type='file'] {
+  min-height: 0;
+  padding: 2px;
+  border: 0;
+  background: none;
+  font-size: 0.85rem;
+}
+
+.file-drop .hint {
+  margin: 0;
+  color: #747987;
+  font-size: 0.78rem;
+}
+
+.file-drop .file-list {
+  margin: 0;
 }
 
 .btn-delete {
