@@ -36,7 +36,7 @@ def equipement_client(monkeypatch):
             UtilisateurGroupe(
                 id_user=user.id_user,
                 id_grp=groupe.id_grp,
-                role="super_admin",
+                role="admin",
             )
         )
         db.commit()

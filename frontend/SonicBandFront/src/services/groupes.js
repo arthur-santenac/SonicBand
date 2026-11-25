@@ -9,6 +9,12 @@ export const groupesApi = {
   membres: (token, idGrp) => apiFetch(`/api/groupes/${idGrp}/membres`, { token }),
   retirerMembre: (token, idGrp, idUser) =>
     apiFetch(`/api/groupes/${idGrp}/membres/${idUser}`, { method: 'DELETE', token }),
+  changerRole: (token, idGrp, idUser, role) =>
+    apiFetch(`/api/groupes/${idGrp}/membres/${idUser}`, {
+      method: 'PATCH',
+      body: { role },
+      token,
+    }),
 
   inviter: (token, idGrp, email) =>
     apiFetch(`/api/groupes/${idGrp}/invitations`, { method: 'POST', body: { email }, token }),

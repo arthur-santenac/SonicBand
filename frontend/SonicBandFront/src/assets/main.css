@@ -1,5 +1,14 @@
 @import './base.css';
 
+/*
+ * Réserve toujours la place de la barre de défilement : sinon, en passant d'une
+ * page courte (accueil) à une page longue (groupe), tout le contenu se décale
+ * de la largeur de la barre et le logo et les bulles de groupes « bougent ».
+ */
+html {
+  scrollbar-gutter: stable;
+}
+
 #app {
   width: 100%;
   margin: 0 auto;

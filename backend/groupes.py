@@ -1,10 +1,12 @@
 """Routes des groupes : création, liste, membres et invitations.
 
 Règles (manuel §2 et §7) :
-- le créateur d'un groupe en devient le super admin ;
-- le super admin et les admins invitent des musiciens par e-mail, avec ou sans compte ;
+- le créateur d'un groupe en devient admin ;
+- les admins invitent des musiciens par e-mail, avec ou sans compte ;
 - l'invité accepte (il devient membre) ou supprime l'invitation depuis sa boîte de réception ;
-- le super admin retire n'importe quel membre, un admin ne retire que les membres.
+- un admin peut nommer un membre admin, ou repasser un admin en membre ;
+- un admin retire n'importe quel autre musicien ;
+- un groupe garde toujours au moins un admin.
 """
 
 from typing import Annotated
@@ -18,8 +20,8 @@ from backend.auth import CurrentUser
 from backend.database import get_db
 from backend.models import Groupe, Invitation, Utilisateur, UtilisateurGroupe
 from backend.permissions import (
+    ADMIN,
     MEMBRE,
-    SUPER_ADMIN,
     GestionnaireMembership,
     Membership,
     peut_retirer,
@@ -32,6 +34,7 @@ from backend.schemas import (
     InvitationRecueOut,
     MembreOut,
     MembresGroupeOut,
+    RoleIn,
 )
 
 router = APIRouter(prefix="/api", tags=["groupes"])
@@ -89,10 +92,10 @@ def creer_groupe(data: GroupeIn, user: CurrentUser, db: DbSession) -> GroupeOut:
     groupe = Groupe(nom_grp=data.nom, description_grp=data.description)
     db.add(groupe)
     db.flush()
-    db.add(UtilisateurGroupe(id_user=user.id_user, id_grp=groupe.id_grp, role=SUPER_ADMIN))
+    db.add(UtilisateurGroupe(id_user=user.id_user, id_grp=groupe.id_grp, role=ADMIN))
     db.commit()
     db.refresh(groupe)
-    return _groupe_out(db, groupe, SUPER_ADMIN)
+    return _groupe_out(db, groupe, ADMIN)
 
 
 @router.get("/groupes", response_model=list[GroupeOut])
@@ -116,7 +119,7 @@ def detail_groupe(id_grp: int, membership: Membership, db: DbSession) -> GroupeO
 
 @router.get("/groupes/{id_grp}/membres", response_model=MembresGroupeOut)
 def membres_groupe(id_grp: int, membership: Membership, db: DbSession) -> MembresGroupeOut:
-    ordre_role = {SUPER_ADMIN: 0, "admin": 1, MEMBRE: 2}
+    ordre_role = {ADMIN: 0, MEMBRE: 1}
     rows = db.execute(
         select(UtilisateurGroupe, Utilisateur)
         .join(Utilisateur, Utilisateur.id_user == UtilisateurGroupe.id_user)
@@ -134,7 +137,7 @@ def membres_groupe(id_grp: int, membership: Membership, db: DbSession) -> Membre
             )
             for ug, u in rows
         ),
-        key=lambda m: ordre_role.get(m.role, 3),
+        key=lambda m: ordre_role.get(m.role, 2),
     )
 
     invitations = db.execute(
@@ -164,11 +167,50 @@ def retirer_membre(
     cible = db.get(UtilisateurGroupe, (id_user, id_grp))
     if cible is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Ce musicien ne fait pas partie du groupe.")
+    if cible.id_user == membership.id_user:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Tu ne peux pas te retirer toi-même du groupe.")
     if not peut_retirer(membership.role, cible.role or MEMBRE):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Tu ne peux pas retirer ce musicien.")
     db.delete(cible)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def _nb_admins(db: Session, id_grp: int) -> int:
+    return db.scalar(
+        select(func.count())
+        .select_from(UtilisateurGroupe)
+        .where(UtilisateurGroupe.id_grp == id_grp, UtilisateurGroupe.role == ADMIN)
+    )
+
+
+@router.patch("/groupes/{id_grp}/membres/{id_user}", response_model=MembreOut)
+def changer_role(
+    id_grp: int,
+    id_user: int,
+    data: RoleIn,
+    membership: GestionnaireMembership,
+    db: DbSession,
+) -> MembreOut:
+    """Nomme un membre admin, ou repasse un admin en simple membre."""
+    cible = db.get(UtilisateurGroupe, (id_user, id_grp))
+    if cible is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Ce musicien ne fait pas partie du groupe.")
+    if (cible.role or MEMBRE) == ADMIN and data.role == MEMBRE and _nb_admins(db, id_grp) <= 1:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Le groupe doit garder au moins un admin : nomme d'abord un autre admin.",
+        )
+    cible.role = data.role
+    db.commit()
+    utilisateur = db.get(Utilisateur, id_user)
+    return MembreOut(
+        id_user=utilisateur.id_user,
+        nom_user=utilisateur.nom_user,
+        email_user=utilisateur.email_user,
+        role=cible.role,
+        date_rejoint=cible.date_rejoint,
+    )
 
 
 # --- Invitations (côté groupe) -----------------------------------------------

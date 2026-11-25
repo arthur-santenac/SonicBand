@@ -1,6 +1,7 @@
 """Schémas Pydantic des requêtes et réponses de l'API."""
 
 from datetime import date, datetime, time
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
@@ -68,6 +69,12 @@ class GroupeOut(BaseModel):
     date_crea_grp: datetime | None = None
     nb_membres: int
     mon_role: str
+
+
+class RoleIn(BaseModel):
+    """Nouveau rôle d'un musicien dans le groupe."""
+
+    role: Literal["admin", "membre"]
 
 
 class MembreOut(BaseModel):
@@ -159,6 +166,16 @@ class EquipementOut(BaseModel):
     est_equipement_groupe: bool = False
 
 
+class PieceJointeOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id_pj: int
+    nom_fichier: str
+    type_mime: str
+    taille: int
+    date_ajout: datetime | None = None
+
+
 class MorceauOut(BaseModel):
     id_song: int
     titre_song: str
@@ -166,6 +183,7 @@ class MorceauOut(BaseModel):
     lien_youtube: str | None = None
     url_img: str | None = None
     position: int | None = None
+    pieces_jointes: list[PieceJointeOut] = []
 
 
 class RepertoireOut(BaseModel):

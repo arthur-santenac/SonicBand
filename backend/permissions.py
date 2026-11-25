@@ -1,4 +1,9 @@
-"""Rôles dans un groupe et vérification des droits (matrice du manuel, §7)."""
+"""Rôles dans un groupe et vérification des droits (matrice du manuel, §7).
+
+Deux rôles : « admin » et « membre ». Le créateur d'un groupe en est admin, et un
+admin peut nommer d'autres admins parmi les membres. Un groupe garde toujours au
+moins un admin.
+"""
 
 from typing import Annotated
 
@@ -10,12 +15,13 @@ from backend.auth import CurrentUser
 from backend.database import get_db
 from backend.models import UtilisateurGroupe
 
-SUPER_ADMIN = "super_admin"
 ADMIN = "admin"
 MEMBRE = "membre"
 
-# Rôles autorisés à inviter un musicien ou à retirer un membre.
-GESTIONNAIRES = {SUPER_ADMIN, ADMIN}
+ROLES = (ADMIN, MEMBRE)
+
+# Rôles autorisés à inviter un musicien, à retirer un membre ou à changer un rôle.
+GESTIONNAIRES = {ADMIN}
 
 
 def get_membership(
@@ -48,9 +54,5 @@ GestionnaireMembership = Annotated[UtilisateurGroupe, Depends(require_gestionnai
 
 
 def peut_retirer(acteur: str, cible: str) -> bool:
-    """Le super admin retire n'importe qui (sauf lui-même) ; un admin ne retire que des membres."""
-    if cible == SUPER_ADMIN:
-        return False
-    if acteur == SUPER_ADMIN:
-        return True
-    return acteur == ADMIN and cible == MEMBRE
+    """Un admin retire n'importe quel autre musicien du groupe (admin ou membre)."""
+    return acteur in GESTIONNAIRES and cible in ROLES

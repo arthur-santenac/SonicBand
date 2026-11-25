@@ -24,7 +24,8 @@
     <p v-if="chargement" class="muted">Chargement…</p>
     <p v-else-if="erreur" class="feedback error" role="alert">{{ erreur }}</p>
 
-    <ul v-else class="member-list">
+    <p v-if="erreurAction" class="feedback error" role="alert">{{ erreurAction }}</p>
+    <ul v-if="!chargement && !erreur" class="member-list">
       <li v-for="m in membres" :key="'m' + m.id_user" class="member-row">
         <div class="member-bubble" :class="couleur(m.id_user)">{{ initiale(m.nom_user) }}</div>
         <div class="member-info">
@@ -32,6 +33,15 @@
           <span>{{ m.email_user }}</span>
         </div>
         <span class="tag" :class="'tag-' + m.role">{{ libelleRole(m) }}</span>
+        <button
+          v-if="peutChangerRole(m)"
+          type="button"
+          class="btn-role"
+          :disabled="enCours === m.id_user"
+          @click="changerRole(m)"
+        >
+          {{ m.role === 'admin' ? 'Retirer admin' : 'Nommer admin' }}
+        </button>
         <button v-if="peutRetirer(m)" type="button" class="btn-remove" @click="retirerMembre(m)">
           Retirer
         </button>
@@ -60,7 +70,7 @@ import { groupesApi } from '@/services/groupes'
 
 const props = defineProps({
   idGrp: { type: Number, required: true },
-  // Rôle de l'utilisateur connecté dans ce groupe : super_admin, admin ou membre.
+  // Rôle de l'utilisateur connecté dans ce groupe : admin ou membre.
   monRole: { type: String, default: 'membre' },
 })
 
@@ -78,21 +88,45 @@ const message = ref('')
 const messageErreur = ref(false)
 
 const monId = computed(() => auth.user?.id_user)
-const peutGerer = computed(() => ['super_admin', 'admin'].includes(props.monRole))
+const peutGerer = computed(() => props.monRole === 'admin')
+const nbAdmins = computed(() => membres.value.filter((m) => m.role === 'admin').length)
+const enCours = ref(null)
+const erreurAction = ref('')
 
 function libelleRole(m) {
-  if (m.role === 'super_admin') return 'Super admin'
   if (m.role === 'admin') return 'Admin'
   // Sur la maquette, les musiciens qui ont accepté l'invitation sont « A rejoint ».
   return 'A rejoint'
 }
 
-// Même règle que le backend : le super admin retire tout le monde sauf lui-même,
-// un admin ne retire que les membres.
+// Même règle que le backend : un admin retire n'importe quel autre musicien.
 function peutRetirer(m) {
-  if (m.role === 'super_admin' || m.id_user === monId.value) return false
-  if (props.monRole === 'super_admin') return true
-  return props.monRole === 'admin' && m.role === 'membre'
+  return peutGerer.value && m.id_user !== monId.value
+}
+
+// Un admin nomme ou retire les admins ; le groupe garde toujours au moins un admin.
+function peutChangerRole(m) {
+  if (!peutGerer.value) return false
+  if (m.role === 'admin' && nbAdmins.value <= 1) return false
+  return true
+}
+
+async function changerRole(m) {
+  const role = m.role === 'admin' ? 'membre' : 'admin'
+  const moi = m.id_user === monId.value
+  if (moi && !window.confirm('Tu ne seras plus admin de ce groupe. Continuer ?')) return
+  erreurAction.value = ''
+  enCours.value = m.id_user
+  try {
+    const maj = await groupesApi.changerRole(auth.token, props.idGrp, m.id_user, role)
+    m.role = maj.role
+    membres.value.sort((a, b) => (a.role === 'admin' ? 0 : 1) - (b.role === 'admin' ? 0 : 1))
+    if (moi) store.rafraichirGroupe(props.idGrp).catch(() => {})
+  } catch (err) {
+    erreurAction.value = err.message
+  } finally {
+    enCours.value = null
+  }
 }
 
 async function charger() {
@@ -282,15 +316,37 @@ watch(() => props.idGrp, charger)
   white-space: nowrap;
 }
 
-.tag-super_admin {
+.tag-admin {
   background: #1c1e21;
   color: white;
 }
 
-.tag-admin,
 .tag-membre {
   background: #d6e4fd;
   color: #1c3d7a;
+}
+
+.btn-role {
+  font-family: inherit;
+  background: white;
+  border: 1px solid #ccd0d5;
+  color: #1c1e21;
+  border-radius: 30px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-role:hover {
+  background: #f4f5f7;
+  border-color: #1c1e21;
+}
+
+.btn-role:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .tag-invite {

@@ -15,14 +15,18 @@ function extractMessage(data, status) {
     if (field === 'email') return 'Adresse e-mail invalide.'
     if (field === 'mot_de_passe') return 'Le mot de passe doit contenir au moins 8 caractères.'
     if (field === 'nom') return 'Le nom affiché est obligatoire.'
+    if (field === 'fichiers') return 'Choisis au moins un fichier.'
     return 'Données invalides.'
   }
   return `Erreur serveur (${status}).`
 }
 
-export async function apiFetch(path, { method = 'GET', body, token } = {}) {
+async function envoyer(path, { method = 'GET', body, token } = {}) {
   const options = { method, headers: { Accept: 'application/json' } }
-  if (body !== undefined) {
+  if (body instanceof FormData) {
+    // Envoi de fichiers : le navigateur fixe lui-même l'en-tête multipart.
+    options.body = body
+  } else if (body !== undefined) {
     options.headers['Content-Type'] = 'application/json'
     options.body = JSON.stringify(body)
   }
@@ -34,8 +38,20 @@ export async function apiFetch(path, { method = 'GET', body, token } = {}) {
   } catch {
     throw new ApiError('Impossible de joindre le serveur. Le backend est-il lancé ?', 0)
   }
+  if (!response.ok) {
+    const data = await response.json().catch(() => null)
+    throw new ApiError(extractMessage(data, response.status), response.status)
+  }
+  return response
+}
 
-  const data = await response.json().catch(() => null)
-  if (!response.ok) throw new ApiError(extractMessage(data, response.status), response.status)
-  return data
+export async function apiFetch(path, options) {
+  const response = await envoyer(path, options)
+  return response.json().catch(() => null)
+}
+
+// Téléchargement d'un fichier protégé par le jeton (pièce jointe, par exemple).
+export async function apiBlob(path, options) {
+  const response = await envoyer(path, options)
+  return response.blob()
 }
