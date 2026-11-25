@@ -13,8 +13,15 @@ CREATE TABLE Disponibilite (
     heure_fin_dispo TIME NOT NULL,
     statut VARCHAR(50) NOT NULL,
     id_user INT NOT NULL,
-    FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE CASCADE
+    -- Planning type (statut 'hebdo') : dernier jour de répétition, NULL = sans fin.
+    date_fin_repet DATE,
+    -- Plage retirée pour une semaine (statut 'retiree') : la plage 'hebdo' concernée.
+    id_dispo_type INT,
+    FOREIGN KEY (id_user) REFERENCES Utilisateur(id_user) ON DELETE CASCADE,
+    FOREIGN KEY (id_dispo_type) REFERENCES Disponibilite(id_dispo) ON DELETE CASCADE
 );
+
+CREATE INDEX disponibilite_user_date ON Disponibilite (id_user, date_dispo);
 
 CREATE TABLE Equipement (
     id_equipement SERIAL PRIMARY KEY,

@@ -51,9 +51,14 @@
           </button>
           <div class="profile-menu" v-if="isProfileOpen">
             <p class="profile-name">{{ userName }}</p>
-            <button type="button" class="profile-item" @click="handleLogout">
-              Se déconnecter
-            </button>
+            <RouterLink
+              :to="{ name: 'my-dispos' }"
+              class="profile-item"
+              @click="isProfileOpen = false"
+            >
+              Mes disponibilités
+            </RouterLink>
+            <button type="button" class="profile-item" @click="handleLogout">Se déconnecter</button>
           </div>
         </div>
       </div>
@@ -175,7 +180,7 @@ const userInitial = computed(() => initiale(userName.value))
 const invitations = computed(() => store.invitations)
 
 const activeGroupId = computed(() => {
-  if (route.name === 'group' || route.name === 'group-musicians') {
+  if (['group', 'group-musicians', 'group-equipment', 'group-dispos'].includes(route.name)) {
     return Number(route.params.id)
   }
   return null
@@ -349,6 +354,10 @@ button {
 }
 
 .profile-item {
+  display: block;
+  box-sizing: border-box;
+  text-decoration: none;
+  font-family: inherit;
   width: 100%;
   text-align: left;
   background: none;

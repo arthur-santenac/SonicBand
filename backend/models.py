@@ -51,7 +51,19 @@ class Utilisateur(Base):
 
 
 class Disponibilite(Base):
+    """Plage horaire libre d'un utilisateur, commune à tous ses groupes.
+
+    statut vaut :
+    - « ponctuelle » : la plage ne vaut que pour date_dispo ;
+    - « hebdo » : planning type, la plage revient chaque semaine le même jour que
+      date_dispo, à partir de date_dispo et jusqu'à date_fin_repet (incluse) si elle
+      est renseignée ;
+    - « retiree » : la plage hebdo id_dispo_type est retirée pour date_dispo seulement.
+    Une heure de fin à 23:59 signifie « jusqu'à minuit ».
+    """
+
     __tablename__ = "disponibilite"
+    __table_args__ = (Index("disponibilite_user_date", "id_user", "date_dispo"),)
 
     id_dispo: Mapped[int] = mapped_column(Integer, primary_key=True)
     date_dispo: Mapped[date] = mapped_column(Date, nullable=False)
@@ -60,6 +72,10 @@ class Disponibilite(Base):
     statut: Mapped[str] = mapped_column(String(50), nullable=False)
     id_user: Mapped[int] = mapped_column(
         ForeignKey("utilisateur.id_user", ondelete="CASCADE"), nullable=False
+    )
+    date_fin_repet: Mapped[date | None] = mapped_column(Date)
+    id_dispo_type: Mapped[int | None] = mapped_column(
+        ForeignKey("disponibilite.id_dispo", ondelete="CASCADE")
     )
 
     utilisateur: Mapped["Utilisateur"] = relationship(back_populates="disponibilites")
